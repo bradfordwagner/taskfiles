@@ -1,0 +1,17 @@
+---
+version: '3'
+env:
+tasks:
+  clear:
+    internal: true
+    cmds: [clear]
+  default:
+    vars:
+      playbook: '{{ .playbook | default "playbook.yml" }}'
+      location: '{{ .location }}'
+    deps: [clear]
+    cmds:
+      - |
+        ansible-playbook \
+          -i localhost, -c local \
+          {{ .playbook | quote }} \

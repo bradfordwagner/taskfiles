@@ -1,0 +1,10 @@
+---
+- hosts: localhost
+  vars:
+    taskfiles_dir: '{{ ansible_env.HOME }}/.taskfiles'
+  tasks:
+    - name: copy taskfiles {{ playbook_dir }} => {{ taskfiles_dir }}
+      synchronize:
+        src: '{{ playbook_dir }}/'
+        dest: '{{ taskfiles_dir }}/'
+
