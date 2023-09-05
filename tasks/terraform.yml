@@ -1,0 +1,39 @@
+# https://taskfile.dev
+
+version: '3'
+
+includes:
+  echo: ./echo.yml
+
+tasks:
+  action:
+    internal: true
+    vars:
+      # plan|apply|destroy
+      tf_action: '{{ .tf_action | default "plan" }}'
+      # true|false
+      backend: '{{ .backend | default "false" }}'
+    env:
+      tf_action: '{{ .tf_action }}'
+      backend: '{{ .backend }}'
+      workspace_name: '{{ .workspace_name }}'
+      workspace_path: '{{ .workspace_path }}'
+    cmds:
+      - task: echo:clear
+      - |
+        echo workspace_name=${workspace_name}, workspace_path=${workspace_path}, backend=${backend}, tf_action=${tf_action}
+        # initialize variables
+        [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
+        [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
+        [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
+
+        set -x
+        [[ 'true' == "${backend}" ]] && terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
+        terraform ${chdir} workspace select -or-create=true ${workspace_name}
+        terraform ${chdir} workspace list
+        terraform ${chdir} plan -lock=true -input=false ${tfvars} ${tf_plan_action}
+
+        # apply only on tags!
+        if [ 'plan' != "${tf_action}" ]; then
+          terraform ${chdir} ${tf_action} -auto-approve -lock=true -input=false ${tfvars}
+        fi

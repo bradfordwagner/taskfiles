@@ -3,6 +3,11 @@
 version: '3'
 
 tasks:
+  clear:
+    internal: true
+    silent: true
+    cmds: [clear]
   echo:
+    internal: true
     cmds:
       - echo "{{ .msg }}"
