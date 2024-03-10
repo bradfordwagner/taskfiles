@@ -1,0 +1,26 @@
+# https://taskfile.dev
+
+version: '3'
+
+env:
+  wd: '{{ .USER_WORKING_DIR }}'
+  project_dir: '{{ printf "%s/%s" .USER_WORKING_DIR "{{ cookiecutter.project_slug }}" }}'
+
+tasks:
+  # based on https://cookiecutter.readthedocs.io/en/latest/tutorials/tutorial2.html#
+  init_template:
+    cmds:
+      - echo project_dir=${project_dir}
+      - |
+        cat << EOF > ${wd}/cookiecutter.json
+        {
+          "project_name": "Cookiecutter Website Simple",
+          "project_slug": "{{ printf "{{ cookiecutter.project_name.lower().replace(' ', '_') }}" }}"
+        }
+        EOF
+      - mkdir -p "${project_dir}"
+      - |
+        cat << EOF > "${project_dir}/readme.md"
+        # {{ printf "{{ cookiecutter.project_name }}" }}
+        EOF
+
