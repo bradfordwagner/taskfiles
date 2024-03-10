@@ -1,0 +1,27 @@
+# https://taskfile.dev
+#
+#
+# TODO: this should be replaced by a cookiecutter template
+
+version: '3'
+
+tasks:
+  mkdir:
+    internal: true
+    cmds:
+      - mkdir -p {{ .USER_WORKING_DIR }}/.github/workflows
+  hello_world_action:
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/hello-world-action.yml
+        name: hello-world
+        on: push
+        jobs:
+          my-job:
+            runs-on: ubuntu-latest
+            steps:
+              - name: my-step
+                run: echo "Hello World!"
+        EOF
