@@ -6,6 +6,9 @@
 
 version: '3'
 
+vars:
+  task_version: 3.35.1
+
 tasks:
   mkdir:
     internal: true
@@ -25,4 +28,33 @@ tasks:
             steps:
               - name: my-step
                 run: echo "Hello World!"
+        EOF
+  ansible_role:
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
+        name: ansible_role
+        on: push
+        jobs:
+          ansible-role:
+            runs-on: ubuntu-latest
+            container:
+              image: quay.io/bradfordwagner/ansible:3.6.2-debian_bookworm
+            steps:
+              - uses: actions/checkout@v4
+              - name: Setup go-task
+                uses: pnorton5432/setup-task@v1
+                with:
+                  task-version: {{ .task_version }}
+              - name: task version
+                run: task --version
+              - name: checkout taskfiles
+                uses: actions/checkout@v4
+                with:
+                  path: taskfiles
+                  repository: bradfordwagner/taskfiles
+              - name: Invoke Ansible Role Test
+                run: task -t ./taskfiles/tasks/ansible_role.yml
         EOF
