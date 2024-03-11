@@ -1,6 +1,5 @@
 # https://taskfile.dev
 #
-#
 # we can't use cookie cutter for these tasks
 #   it is necessary for us to rev all the repositories
 #   cookiecutter may not be the right choice for that
