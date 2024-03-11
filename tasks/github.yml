@@ -31,6 +31,7 @@ tasks:
         EOF
   # TODO: setup matrix for image builds
   # extract checkout + go task setup + taskfiles download to a reusable template
+  # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
   ansible_role:
     cmds:
       - task: mkdir
