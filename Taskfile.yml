@@ -14,4 +14,4 @@ tasks:
       - |
         ansible-playbook \
           -i localhost, -c local \
-          {{ .playbook | quote }} \
+          {{ .playbook | quote }}
