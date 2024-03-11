@@ -2,6 +2,9 @@
 
 version: '3'
 
+env:
+  wd: '{{ .USER_WORKING_DIR }}'
+
 tasks:
   default:
     vars:
@@ -12,6 +15,7 @@ tasks:
       test_file: '{{ .test_file }}'
     cmds:
       - |
+        cd ${wd}
         [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
         [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
         set -e
