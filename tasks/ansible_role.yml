@@ -1,0 +1,18 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  default:
+    vars:
+      debug: '{{ default "false" .debug }}'
+      test_file: '{{ default "test.yml" .test_file }}'
+    env:
+      debug: '{{ .debug }}'
+      test_file: '{{ .test_file }}'
+    cmds:
+      - |
+        [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
+        [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
+        set -e
+        ansible-playbook ${test_file} && echo Success || echo Failure
