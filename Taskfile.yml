@@ -9,8 +9,8 @@ tasks:
     vars:
       playbook: '{{ .playbook | default "playbook.yml" }}'
       location: '{{ .location }}'
-    deps: [clear]
     cmds:
+      - task: clear
       - |
         ansible-playbook \
           -i localhost, -c local \
