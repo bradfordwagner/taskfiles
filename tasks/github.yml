@@ -21,7 +21,8 @@ vars:
       with:
         path: taskfiles
         repository: bradfordwagner/taskfiles
-
+# todo: setup buildkit
+# initially use mirror task
 tasks:
   mkdir:
     internal: true
