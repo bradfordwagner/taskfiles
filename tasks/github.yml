@@ -27,24 +27,6 @@ tasks:
     internal: true
     cmds:
       - mkdir -p {{ .USER_WORKING_DIR }}/.github/workflows
-  hello_world_action:
-    cmds:
-      - task: mkdir
-        ignore_error: true
-      - |
-        cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/hello-world-action.yml
-        name: hello-world
-        on: push
-        jobs:
-          my-job:
-            runs-on: ubuntu-latest
-            steps:
-              - name: my-step
-                run: echo "Hello World!"
-        EOF
-  # TODO: setup matrix for image builds
-  # extract checkout + go task setup + taskfiles download to a reusable template
-  # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
   ansible_role:
     cmds:
       - task: mkdir
