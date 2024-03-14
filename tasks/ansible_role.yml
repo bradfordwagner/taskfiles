@@ -19,4 +19,4 @@ tasks:
         [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
         [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
         set -e
-        ansible-playbook ${test_file} && echo Success || echo Failure
+        ansible-playbook ${test_file}
