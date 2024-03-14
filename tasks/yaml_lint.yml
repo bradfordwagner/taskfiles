@@ -1,0 +1,21 @@
+---
+version: '3'
+
+description: |
+  This is used to lint all the yaml files in the project.
+
+vars:
+  config: |
+    extends: default
+    rules:
+      line-length:
+        max: 160 # we have widescreens 80 is too little
+        level: warning
+
+tasks:
+  default:
+    cmds:
+      - |
+        yamllint -d "
+        {{ .config }}
+        " .

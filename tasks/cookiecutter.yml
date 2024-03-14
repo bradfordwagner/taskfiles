@@ -1,5 +1,4 @@
-# https://taskfile.dev
-
+---
 version: '3'
 
 env:
@@ -23,4 +22,3 @@ tasks:
         cat << EOF > "${project_dir}/readme.md"
         # {{ printf "{{ cookiecutter.project_name }}" }}
         EOF
-

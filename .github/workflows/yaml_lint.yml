@@ -1,0 +1,22 @@
+name: yaml_lint
+on: push
+jobs:
+  yaml-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup go-task
+        uses: pnorton5432/setup-task@v1
+        with:
+          task-version: 3.35.1
+      - name: task version
+        run: task --version
+      - name: checkout taskfiles
+        uses: actions/checkout@v4
+        with:
+          path: taskfiles
+          repository: bradfordwagner/taskfiles
+      - name: Install yamllint
+        run: pip install --user yamllint
+      - name: Invoke YAML Lint
+        run: task -t ./taskfiles/tasks/yaml_lint.yml

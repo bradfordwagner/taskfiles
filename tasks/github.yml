@@ -1,6 +1,8 @@
-# https://taskfile.dev
+---
 # todo: setup buildkit
 # initially use mirror task
+# - handle on tag:
+# https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-your-workflow-only-when-a-push-of-specific-tags-occurs
 
 version: '3'
 
@@ -55,4 +57,22 @@ tasks:
               {{- .default_steps | nindent 6 -}}
               - name: Invoke Ansible Role Test
                 run: task -t ./taskfiles/tasks/ansible_role.yml
+        EOF
+  yaml_lint:
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/yaml_lint.yml
+        name: yaml_lint
+        on: push
+        jobs:
+          yaml-lint:
+            runs-on: ubuntu-latest
+            steps:
+              {{- .default_steps | nindent 6 -}}
+              - name: Install yamllint
+                run: pip install --user yamllint
+              - name: Invoke YAML Lint
+                run: task -t ./taskfiles/tasks/yaml_lint.yml
         EOF

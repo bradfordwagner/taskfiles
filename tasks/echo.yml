@@ -1,8 +1,0 @@
-# https://taskfile.dev
-
-version: '3'
-
-tasks:
-  echo:
-    cmds:
-      - echo "{{ .msg }}"
