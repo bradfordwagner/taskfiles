@@ -43,6 +43,7 @@ tasks:
         jobs:
           ansible-role:
             strategy:
+              fail-fast: false
               matrix:
                 os:
                   - alpine_3.16
