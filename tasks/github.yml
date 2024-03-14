@@ -34,7 +34,9 @@ tasks:
       - |
         cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
         name: ansible_role
-        on: push
+        on:
+          - push
+          - workflow_dispatch
         jobs:
           ansible-role:
             strategy:
