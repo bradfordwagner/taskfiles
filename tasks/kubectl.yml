@@ -1,0 +1,25 @@
+---
+version: '3'
+
+description: |
+  task helper for kubectl
+
+tasks:
+  action_file:
+    desc: runs kubectl action on file
+    internal: true
+    cmds:
+      - kubectl {{ .action }} -f {{ .file }}
+  in_dir:
+    aliases: [id, dir]
+    desc: applies all files in present directory, non-recursive
+    vars:
+      action: '{{ default "apply" .action }}'
+      files:
+        sh: find {{ .USER_WORKING_DIR }} -type f -name '*.yaml' -o -name '*.yml' ! -name 'Taskfile.yml'
+    cmds:
+      - for: { var: files }
+        task: action_file
+        vars:
+          action: '{{ .action }}'
+          file: '{{ .ITEM }}'
