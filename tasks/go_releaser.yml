@@ -15,7 +15,7 @@ tasks:
     cmds:
       - |
         cd ${wd}
-        set -x
+        set -ex
         goreleaser check
         {{ if eq "true" .is_tag -}}
           goreleaser release
