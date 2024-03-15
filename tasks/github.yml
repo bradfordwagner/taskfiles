@@ -8,6 +8,15 @@ version: '3'
 
 vars:
   task_version: 3.35.1
+  on_tags: |
+    on:
+      push:
+        tags:
+          - '*'
+  on_branches: |
+    on:
+      - push
+      - workflow_dispatch
   default_steps: |
     - uses: actions/checkout@v4
     - name: Setup go-task
@@ -78,3 +87,40 @@ tasks:
               - name: Invoke YAML Lint
                 run: task -t ./taskfiles/tasks/yaml_lint.yml
         EOF
+  go_releaser:
+    vars:
+      go_version: 1.21
+      goreleaser_version: 1.24.0
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [tags, branches]
+        cmd: |
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/go_releaser_{{ .ITEM }}.yml
+          name: go_releaser_{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          jobs:
+            go-releaser-{{ .ITEM }}:
+              runs-on: ubuntu-latest
+              # container:
+              #   image: quay.io/bradfordwagner/go-builder:2.6.0-debian_bullseye
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - name: Install go
+                  uses: actions/setup-go@v5
+                  with:
+                    go-version: {{ .go_version }}
+                - name: Install goreleaser
+                  uses: goreleaser/goreleaser-action@v5
+                  with:
+                    version: {{ .goreleaser_version }}
+                    install-only: true
+                - name: Goreleaser
+                  run: task -t ./taskfiles/tasks/go_releaser.yml is_tag={{ eq .ITEM "tags" }}
+                  env:
+                    GITHUB_TOKEN: {{ `\${{ github.token }} `}}
+          EOF
