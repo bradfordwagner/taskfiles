@@ -108,16 +108,16 @@ tasks:
               runs-on: ubuntu-latest
               steps:
                 {{- .default_steps | nindent 6 -}}
-                - name: Install go
+                - name: go={{ .go_version }}
                   uses: actions/setup-go@v5
                   with:
                     go-version: {{ .go_version }}
-                - name: Install goreleaser
+                - name: goreleaser={{ .goreleaser_version }}
                   uses: goreleaser/goreleaser-action@v5
                   with:
                     version: {{ .goreleaser_version }}
                     install-only: true
-                - name: Goreleaser
+                - name: Goreleaser - {{ .ITEM }}
                   run: task -t ./taskfiles/tasks/go_releaser.yml is_tag={{ eq .ITEM "tags" }}
                   env:
                     GITHUB_TOKEN: {{ `\${{ github.token }} `}}
