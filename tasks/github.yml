@@ -117,7 +117,7 @@ tasks:
                   with:
                     version: {{ .goreleaser_version }}
                     install-only: true
-                - name: Goreleaser - {{ .ITEM }}
+                - name: task={{ .ITEM }}
                   run: task -t ./taskfiles/tasks/go_releaser.yml is_tag={{ eq .ITEM "tags" }}
                   env:
                     GITHUB_TOKEN: {{ `\${{ github.token }} `}}
