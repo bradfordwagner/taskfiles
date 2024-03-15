@@ -18,7 +18,7 @@ tasks:
       files:
         sh: find {{ .USER_WORKING_DIR }} -type f -name '*.yaml' -o -name '*.yml' ! -name 'Taskfile.yml'
     cmds:
-      - for: { var: files }
+      - for: {var: files}
         task: action_file
         vars:
           action: '{{ .action }}'
