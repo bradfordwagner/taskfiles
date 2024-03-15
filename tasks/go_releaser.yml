@@ -23,3 +23,4 @@ tasks:
           # requires env.GITHUB_TOKEN
           goreleaser build --snapshot --clean
         {{- end }}
+        ls -lh dist
