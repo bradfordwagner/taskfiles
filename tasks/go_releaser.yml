@@ -7,15 +7,19 @@ description: |
 vars:
   is_tag: false
 
+env:
+  wd: '{{ .USER_WORKING_DIR }}'
+
 tasks:
   default:
     cmds:
-      - goreleaser check
       - |
+        cd ${wd}
         set -x
+        goreleaser check
         {{ if eq "true" .is_tag -}}
           goreleaser release
         {{- else }}
           # requires env.GITHUB_TOKEN
-          goreleaser build --snapshot
+          goreleaser build --snapshot --clean
         {{- end }}
