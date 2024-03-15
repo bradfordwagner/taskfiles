@@ -1,0 +1,21 @@
+---
+version: '3'
+
+description: |
+  This is used to build go releaser binaries
+
+vars:
+  is_tag: false
+
+tasks:
+  default:
+    cmds:
+      - goreleaser check
+      - |
+        set -x
+        {{ if eq "true" .is_tag -}}
+          goreleaser release
+        {{- else }}
+          # requires env.GITHUB_TOKEN
+          goreleaser build --snapshot
+        {{- end }}
