@@ -106,8 +106,6 @@ tasks:
           jobs:
             go-releaser-{{ .ITEM }}:
               runs-on: ubuntu-latest
-              # container:
-              #   image: quay.io/bradfordwagner/go-builder:2.6.0-debian_bullseye
               steps:
                 {{- .default_steps | nindent 6 -}}
                 - name: Install go
