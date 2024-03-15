@@ -9,7 +9,8 @@ tasks:
     desc: runs kubectl action on file
     internal: true
     cmds:
-      - kubectl {{ .action }} -f {{ .file }}
+      - cmd: kubectl {{ .action }} -f {{ .file }}
+        ignore_error: true
   in_dir:
     aliases: [id, dir]
     desc: applies all files in present directory, non-recursive
