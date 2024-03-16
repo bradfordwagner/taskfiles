@@ -5,6 +5,13 @@ description: |
   task helper for helm
 
 tasks:
-  default:
+  lint:
     cmds:
       - helm lint {{ .USER_WORKING_DIR }}
+  template:
+    cmds:
+      - helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }}
+  default:
+    cmds:
+      - task: lint
+      - task: template
