@@ -1,0 +1,10 @@
+---
+version: '3'
+
+description: |
+  task helper for helm
+
+tasks:
+  default:
+    cmds:
+      - helm lint {{ .USER_WORKING_DIR }}
