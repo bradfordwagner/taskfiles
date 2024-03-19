@@ -6,13 +6,15 @@ description: |
 
 tasks:
   extract_cert_manager_certs:
-    desc: extracts cert-manager tls.crt, tls.key, and ca.crt from a secret
+    desc: vars{cert_secret=secret name to extract } extracts cert-manager tls.crt, tls.key, and ca.crt from a secret.
     vars:
       cert_secret: '{{ default "cnp-gateway-tls-cert" .cert_secret }}'
+    env:
+      cert_secret: '{{ .cert_secret }}'
     cmds:
-      - kubectl get secrets ${cert_secret} -o json | jq '.data["ca.crt"]' -r  | base64 -d > ca.crt
-      - kubectl get secrets ${cert_secret} -o json | jq '.data["tls.crt"]' -r | base64 -d > tls.crt
-      - kubectl get secrets ${cert_secret} -o json | jq '.data["tls.key"]' -r | base64 -d > tls.key
+      - kubectl get secrets ${cert_secret} -o json | jq '.data["ca.crt"]' -r  | base64 -d > {{ .USER_WORKING_DIR }}/ca.crt
+      - kubectl get secrets ${cert_secret} -o json | jq '.data["tls.crt"]' -r | base64 -d > {{ .USER_WORKING_DIR }}/tls.crt
+      - kubectl get secrets ${cert_secret} -o json | jq '.data["tls.key"]' -r | base64 -d > {{ .USER_WORKING_DIR }}/tls.key
   action_file:
     desc: runs kubectl action on file
     internal: true
