@@ -15,7 +15,6 @@ tasks:
         ignore_error: true
       - task: layout_tiled
   layout_tiled:
-    internal: true
     desc: tiled layout
     cmds:
       - cmd: tmux select-layout tiled
