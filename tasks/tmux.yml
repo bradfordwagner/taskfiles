@@ -19,8 +19,8 @@ tasks:
     cmds:
       - cmd: tmux select-layout tiled
   split_dirs:
-    aliases: [id, dir]
-    desc: opens dirs in new panes and auto tiles afterwards
+    aliases: [sd]
+    desc: opens dirs in new panes and tiles
     vars:
       dirs:
         sh: find {{ .USER_WORKING_DIR }} -maxdepth 1 -type d
