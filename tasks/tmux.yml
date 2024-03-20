@@ -13,6 +13,7 @@ tasks:
           tmux split-window -d -P -F '#{pane_index}' \
             | xargs -I % tmux send  -t % 'cd {{ .dir }}' Enter 'clear' Enter
         ignore_error: true
+      - task: layout_tiled
   layout_tiled:
     internal: true
     desc: tiled layout
@@ -23,10 +24,10 @@ tasks:
     desc: opens dirs in new panes and tiles
     vars:
       dirs:
-        sh: find {{ .USER_WORKING_DIR }} -maxdepth 1 -type d
+        # sed 1d removes the first line which is the current directory
+        sh: find {{ .USER_WORKING_DIR }} -maxdepth 1 -type d -not -name '{{ .USER_WORKING_DIR }}' | sed '1d'
     cmds:
       - for: {var: dirs}
         task: split_window
         vars:
           dir: '{{ .ITEM }}'
-      - task: layout_tiled
