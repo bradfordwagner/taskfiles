@@ -1,0 +1,32 @@
+---
+version: '3'
+
+description: |
+  task helper for tmux
+
+tasks:
+  split_window:
+    desc: splits window with input directory
+    internal: true
+    cmds:
+      - cmd: |
+          tmux split-window -d -P -F '#{pane_index}' \
+            | xargs -I % tmux send  -t % 'cd {{ .dir }}' Enter 'clear' Enter
+        ignore_error: true
+  layout_tiled:
+    internal: true
+    desc: tiled layout
+    cmds:
+      - cmd: tmux select-layout tiled
+  split_dirs:
+    aliases: [id, dir]
+    desc: opens dirs in new panes and auto tiles afterwards
+    vars:
+      dirs:
+        sh: find {{ .USER_WORKING_DIR }} -maxdepth 1 -type d
+    cmds:
+      - for: {var: dirs}
+        task: split_window
+        vars:
+          dir: '{{ .ITEM }}'
+      - task: layout_tiled
