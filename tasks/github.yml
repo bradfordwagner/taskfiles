@@ -121,3 +121,26 @@ tasks:
                   env:
                     GITHUB_TOKEN: {{ `\${{ github.token }} `}}
           EOF
+  helm:
+    vars:
+      helm_version: v3.14.3
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches]
+        cmd: |
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/helm_{{ .ITEM }}.yml
+          name: helm-{{ .ITEM }}
+          {{ .on_branches -}}
+          jobs:
+            helm_{{ .ITEM }}:
+              runs-on: ubuntu-latest
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - name: helm={{ .helm_version }}
+                  uses: azure/setup-helm@v4.1.0
+                  with:
+                     version: '{{ .helm_version }}'
+                - name: task={{ .ITEM }}
+                  run: task -t ./taskfiles/tasks/helm.yml
+          EOF
