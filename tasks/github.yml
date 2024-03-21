@@ -147,12 +147,12 @@ tasks:
           EOF
   container_mirror:
     vars:
-      config: 
+      config:
         sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
     cmds:
       - task: mkdir
         ignore_error: true
-      - for: [branches,tags]
+      - for: [branches, tags]
         cmd: |
           {{- $c := fromJson .config -}}
           {{- $root := . -}}
@@ -193,4 +193,3 @@ tasks:
           {{- end }}
           {{ end }}
           EOF
-

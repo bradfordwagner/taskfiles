@@ -11,7 +11,7 @@ tasks:
   init:
     cmds:
       - |
-        cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml 
+        cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
         target_repo: quay.io/bradfordwagner/template-mirror
         mirrors:
           - { repo: alpine    , tag: '3.19'   , platforms: [linux/amd64    , linux/arm64] }
