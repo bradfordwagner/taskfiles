@@ -181,7 +181,7 @@ tasks:
                   run: docker login -u="{{ `\${{ secrets.QUAY_USER }}`}}" -p="{{ `\${{ secrets.QUAY_PASSWORD }}`}}" quay.io
                 - name: task={{ .ITEM }}
                   run: |
-                    {{ $ci_tag := `\${{ github.ref }}` }}
+                    {{ $ci_tag := `\${{ github.ref_name }}` }}
                     task -t ./taskfiles/tasks/containers/mirror.yml \
                       build \
                       repo={{ $v.repo }} \

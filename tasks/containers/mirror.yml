@@ -14,11 +14,13 @@ tasks:
         cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml 
         target_repo: quay.io/bradfordwagner/template-mirror
         mirrors:
-          - repo: alpine
-            platforms:
-              - linux/amd64
-              - linux/arm64
-            tag: latest
+          - { repo: alpine    , tag: '3.19'   , platforms: [linux/amd64    , linux/arm64] }
+          - { repo: alpine    , tag: '3.18'   , platforms: [linux/amd64    , linux/arm64] }
+          - { repo: debian    , tag: bookworm , platforms: [linux/amd64    , linux/arm64] }
+          - { repo: debian    , tag: bullseye , platforms: [linux/amd64    , linux/arm64] }
+          - { repo: ubuntu    , tag: noble    , platforms: [linux/amd64    , linux/arm64] }
+          - { repo: ubuntu    , tag: mantic   , platforms: [linux/amd64    , linux/arm64] }
+          - { repo: archlinux , tag: latest   , platforms: [linux/amd64] }
         EOF
   build:
     vars:
