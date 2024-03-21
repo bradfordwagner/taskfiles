@@ -145,14 +145,14 @@ tasks:
                 - name: task={{ .ITEM }}
                   run: task -t ./taskfiles/tasks/helm.yml
           EOF
-  docker_mirror:
+  container_mirror:
     vars:
       config: 
         sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
     cmds:
       - task: mkdir
         ignore_error: true
-      - for: [branches]
+      - for: [branches,tags]
         cmd: |
           {{- $c := fromJson .config -}}
           {{- $root := . -}}
@@ -177,16 +177,18 @@ tasks:
                   uses: docker/setup-buildx-action@v3
                   with:
                     version: {{ .buildx_version }}
-                - name: login
+                - name: login=quay.io
                   run: docker login -u="{{ `\${{ secrets.QUAY_USER }}`}}" -p="{{ `\${{ secrets.QUAY_PASSWORD }}`}}" quay.io
                 - name: task={{ .ITEM }}
                   run: |
+                    {{ $ci_tag := `\${{ github.ref }}` }}
                     task -t ./taskfiles/tasks/containers/mirror.yml \
                       build \
                       repo={{ $v.repo }} \
                       repo_tag={{ $v.tag }} \
                       platforms={{ $v.platforms | join "," }} \
                       target_repo={{ $c.target_repo }} \
+                      target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \
                       is_tag={{ eq .ITEM "tags" }}
           {{- end }}
           {{ end }}
