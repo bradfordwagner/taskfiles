@@ -8,6 +8,7 @@ version: '3'
 
 vars:
   task_version: 3.35.1
+  buildx_version: v0.13.1
   on_tags: |
     on:
       push:
@@ -144,3 +145,48 @@ tasks:
                 - name: task={{ .ITEM }}
                   run: task -t ./taskfiles/tasks/helm.yml
           EOF
+  docker_mirror:
+    vars:
+      config: 
+        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches]
+        cmd: |
+          {{- $c := fromJson .config -}}
+          {{- $root := . -}}
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/docker_mirror_{{ .ITEM }}.yml
+          name: docker-mirror-{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          jobs:
+          {{- range $_, $v := $c.mirrors }}
+          {{- with $root }}
+            {{ $v.repo }}_{{ $v.tag | replace "." "-" }}_{{ .ITEM }}:
+              name: {{ $v.repo }}:{{ $v.tag }}
+              runs-on: ubuntu-latest
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - name: qemu
+                  uses: docker/setup-qemu-action@v3
+                - name: docker_buildx={{ .buildx_version }}
+                  uses: docker/setup-buildx-action@v3
+                  with:
+                    version: {{ .buildx_version }}
+                - name: task={{ .ITEM }}
+                  run: |
+                    task -t ./taskfiles/tasks/containers/mirror.yml \
+                      build \
+                      repo={{ $v.repo }} \
+                      repo_tag={{ $v.tag }} \
+                      platforms={{ $v.platforms | join "," }} \
+                      target_repo={{ $c.target_repo }} \
+                      is_tag={{ eq .ITEM "tags" }}
+          {{- end }}
+          {{ end }}
+          EOF
+
