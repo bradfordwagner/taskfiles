@@ -30,7 +30,8 @@ tasks:
       target_tag: '{{ default "latest" .target_tag }}'
     cmds:
       - |
+        {{- $tag := .is_tag | ternary "--push" "" }}
+        set -x
         echo '
         FROM {{ .repo }}:{{ .repo_tag }}
-        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo}}:{{ .target_tag}} -
-    # ' | docker buildx build --platform linux/amd64,linux/arm64 -t hello-world -
+        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
