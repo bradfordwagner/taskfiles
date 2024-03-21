@@ -30,7 +30,7 @@ tasks:
       target_tag: '{{ default "latest" .target_tag }}'
     cmds:
       - |
-        {{- $tag := .is_tag | ternary "--push" "" }}
+        {{- $tag := eq "false" .is_tag | ternary "--push" " " }}
         set -x
         echo '
         FROM {{ .repo }}:{{ .repo_tag }}
