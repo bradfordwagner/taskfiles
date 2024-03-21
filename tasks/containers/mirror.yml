@@ -1,0 +1,36 @@
+---
+version: '3'
+
+description: |
+  This is used to run docker builds on gh actions
+
+vars:
+  is_tag: false
+
+tasks:
+  init:
+    cmds:
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml 
+        target_mirror: quay.io/bradfordwagner/template-mirror
+        mirrors:
+          - repo: alpine
+            platforms:
+              - linux/amd64
+              - linux/arm64
+            tag: latest
+        EOF
+  build:
+    vars:
+      # comma separated ist of platforms to build
+      repo: '{{ default "alpine" .repo }}'
+      repo_tag: '{{ default "latest" .repo_tag }}'
+      platforms: '{{ default "linux/amd64" .platforms }}'
+      target_repo: '{{ default "quay.io/bradfordwagner/template-mirror" .target_repo }}'
+      target_tag: '{{ default "latest" .target_tag }}'
+    cmds:
+      - |
+        echo '
+        FROM {{ .repo }}:{{ .repo_tag }}
+        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo}}:{{ .target_tag}} -
+    # ' | docker buildx build --platform linux/amd64,linux/arm64 -t hello-world -
