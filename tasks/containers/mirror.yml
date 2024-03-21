@@ -12,6 +12,7 @@ tasks:
     cmds:
       - |
         cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
+        # created by init task for use with github actons
         target_repo: quay.io/bradfordwagner/template-mirror
         mirrors:
           - { repo: alpine    , tag: '3.19'   , platforms: [linux/amd64    , linux/arm64] }
