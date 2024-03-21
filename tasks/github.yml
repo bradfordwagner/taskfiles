@@ -193,4 +193,3 @@ tasks:
           {{- end }}
           {{ end }}
           EOF
-
