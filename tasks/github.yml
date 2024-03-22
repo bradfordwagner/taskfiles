@@ -178,7 +178,7 @@ tasks:
                   with:
                     version: {{ .buildx_version }}
                 - name: login=quay.io
-                  run: docker login -u="{{ `\${{ secrets.QUAY_USER }}`}}" -p="{{ `\${{ secrets.QUAY_PASSWORD }}`}}" quay.io
+                  run: {{ `\${{ secrets.QUAY_LOGIN }}`}}
                 - name: task={{ .ITEM }}
                   run: |
                     {{ $ci_tag := `\${{ github.ref_name }}` }}
