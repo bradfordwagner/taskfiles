@@ -9,6 +9,8 @@ vars:
 
 tasks:
   init:
+    desc: |
+      This task is used to create the config.yaml file to initialize mirror builds
     cmds:
       - |
         cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
@@ -24,6 +26,8 @@ tasks:
           - { repo: archlinux , tag: latest   , platforms: [linux/amd64] }
         EOF
   build:
+    desc: |
+      This task is used to build the docker images
     vars:
       # comma separated ist of platforms to build
       repo: '{{ default "alpine" .repo }}'
