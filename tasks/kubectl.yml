@@ -21,13 +21,20 @@ tasks:
     cmds:
       - cmd: kubectl {{ .action }} -f {{ .file }}
         ignore_error: true
+  in_dir_delete:
+    aliases: [idd]
+    desc: kubectl deletes all files in present directory, non-recursive
+    cmds:
+      - task: in_dir
+        vars:
+          action: delete
   in_dir:
     aliases: [id, dir]
     desc: applies all files in present directory, non-recursive
     vars:
       action: '{{ default "apply" .action }}'
       files:
-        sh: find {{ .USER_WORKING_DIR }} -type f -name '*.yaml' -o -name '*.yml' ! -name 'Taskfile.yml'
+        sh: find {{ .USER_WORKING_DIR }} -maxdepth 1 -type f -name '*.yaml' -o -name '*.yml' ! -name 'Taskfile.yml'
     cmds:
       - for: {var: files}
         task: action_file
