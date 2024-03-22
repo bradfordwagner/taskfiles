@@ -11,6 +11,15 @@ tasks:
   template:
     cmds:
       - helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }}
+  dependencies:
+    desc: installs helm dependencies
+    vars:
+      cleanup: '{{ default "true" .cleanup }}'
+    cmds:
+      - cmd: |
+          [[ "true" == "{{ .cleanup }}" ]] && rm -rf {{ .USER_WORKING_DIR}}/charts {{ .USER_WORKING_DIR }}/Chart.lock
+        ignore_error: true
+      - cd {{ .USER_WORKING_DIR }} && helm dependency build
   default:
     cmds:
       - task: lint
