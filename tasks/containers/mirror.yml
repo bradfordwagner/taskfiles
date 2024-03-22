@@ -27,6 +27,7 @@ tasks:
     vars:
       # comma separated ist of platforms to build
       repo: '{{ default "alpine" .repo }}'
+      repo_rename: '{{ .repo_rename }}'
       repo_tag: '{{ default "latest" .repo_tag }}'
       platforms: '{{ default "linux/amd64" .platforms }}'
       target_repo: '{{ default "quay.io/bradfordwagner/template-mirror" .target_repo }}'
@@ -34,7 +35,8 @@ tasks:
     cmds:
       - |
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
+        {{- $resolved_repo := default .repo .repo_rename }}
         set -x
         echo '
         FROM {{ .repo }}:{{ .repo_tag }}
-        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }}-{{ .repo }}_{{ .repo_tag }} {{ $tag }} -
+        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }}-{{ $resolved_repo }}_{{ .repo_tag }} {{ $tag }} -
