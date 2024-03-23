@@ -1,0 +1,45 @@
+---
+version: '3'
+
+description: |
+  This is used to run docker builds on gh actions
+
+vars:
+  is_tag: false
+
+tasks:
+  init:
+    desc: |
+      This task is used to create the config.yaml file to initialize custom builds
+    cmds:
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
+        # created by init task for use with github actons
+        target_repo: quay.io/bradfordwagner/ansible
+        upstreams:
+          - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.18      , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.19      , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-archlinux_latest , platforms: [linux/amd64    ] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bookworm  , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bullseye  , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
+        EOF
+  build:
+    desc: |
+      This task is used to build the docker images
+    vars:
+      # comma separated ist of platforms to build
+      repo: '{{ default "alpine" .repo }}'
+      repo_tag: '{{ default "latest" .repo_tag }}'
+      platforms: '{{ default "linux/amd64" .platforms }}'
+      target_repo: '{{ default "quay.io/bradfordwagner/template-mirror" .target_repo }}'
+      target_tag: '{{ default "latest" .target_tag }}'
+    cmds:
+      - |
+        {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
+        {{- $resolved_repo := default .repo .repo_rename }}
+        set -x
+        echo '
+        FROM {{ .repo }}
+        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }}-{{ $resolved_repo }}_{{ .repo_tag }} {{ $tag }} -
