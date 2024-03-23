@@ -40,4 +40,5 @@ tasks:
         set -x
         echo '
         FROM {{ .repo }}
+        ## how do we get custom values in here from the config.yaml?? eesh...
         ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
