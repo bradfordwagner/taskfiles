@@ -29,8 +29,10 @@ tasks:
         file={{ .USER_WORKING_DIR }}/generate_dockerfile.sh
         cat <<EOF > ${file}
         # this is used to generate a docker file in the build task
+        # input 0 is expected to be the nth upstream item
+        v=\$1
         cat <<FOF
-        RUN echo hello world
+        RUN echo hello world=\$v
         FOF
         EOF
         chmod +x ${file}
@@ -39,17 +41,17 @@ tasks:
       This task is used to build the docker images
     vars:
       # comma separated ist of platforms to build
-      repo: '{{ default "alpine" .repo }}'
+      repo: '{{ default "quay.io/bradfordwagner/base:3.0.0-alpine_3.18" .repo }}'
       platforms: '{{ default "linux/amd64" .platforms }}'
-      target_repo: '{{ default "quay.io/bradfordwagner/template-mirror" .target_repo }}'
+      target_repo: '{{ default "quay.io/bradfordwagner/test" .target_repo }}'
       target_tag: '{{ default "latest" .target_tag }}'
+      v: '{{ default "{}" .v }}'
     cmds:
       - |
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
-        generate_dockerfile=$({{ .USER_WORKING_DIR }}/generate_dockerfile.sh)
         set -x
-        echo '
+        generate_dockerfile=$(. {{ .USER_WORKING_DIR }}/generate_dockerfile.sh '{{ .v }}')
+        echo "
         FROM {{ .repo }}
         ${generate_dockerfile}
-        ## how do we get custom values in here from the config.yaml?? eesh...
-        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
+        " | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -

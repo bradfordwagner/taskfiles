@@ -238,6 +238,7 @@ tasks:
                       target_repo={{ $c.target_repo }} \
                       target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \
                       is_tag={{ eq .ITEM "tags" }}
+                      v={{ toJson $v }}
           {{- end }}
           {{ end }}
           EOF
