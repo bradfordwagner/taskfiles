@@ -41,7 +41,7 @@ tasks:
     cmds:
       - |
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
-        generate_dockerfile=$(./generate_dockerfile.sh)
+        generate_dockerfile=$({{ .USER_WORKING_DIR }}/generate_dockerfile.sh)
         set -x
         echo '
         FROM {{ .repo }}
