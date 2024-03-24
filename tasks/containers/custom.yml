@@ -18,17 +18,22 @@ tasks:
         target_repo: quay.io/bradfordwagner/ansible
         upstreams:
           - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.18      , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.19      , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-archlinux_latest , platforms: [linux/amd64    ] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bookworm  , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bullseye  , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
+          # - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.19      , platforms: [linux/amd64        , linux/arm64] }
+          # - { repo: quay.io/bradfordwagner/base:3.0.0-archlinux_latest , platforms: [linux/amd64    ] }
+          # - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bookworm  , platforms: [linux/amd64        , linux/arm64] }
+          # - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bullseye  , platforms: [linux/amd64        , linux/arm64] }
+          # - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
+          # - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
         EOF
       - |
-        cat <<EOF > {{ .USER_WORKING_DIR }}/generate_dockerfile.sh
+        file={{ .USER_WORKING_DIR }}/generate_dockerfile.sh
+        cat <<EOF > ${file}
+        # this is used to generate a docker file in the build task
+        cat <<FOF
         RUN echo hello world
+        FOF
         EOF
+        chmod +x ${file}
   build:
     desc: |
       This task is used to build the docker images
