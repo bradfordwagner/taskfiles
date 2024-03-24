@@ -25,6 +25,10 @@ tasks:
           - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
           - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
         EOF
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/generate_dockerfile.sh
+        RUN echo hello world
+        EOF
   build:
     desc: |
       This task is used to build the docker images
@@ -40,5 +44,6 @@ tasks:
         set -x
         echo '
         FROM {{ .repo }}
+        $(./generate_dockerfile.sh)
         ## how do we get custom values in here from the config.yaml?? eesh...
         ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
