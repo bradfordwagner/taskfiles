@@ -41,9 +41,10 @@ tasks:
     cmds:
       - |
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
+        generate_dockerfile=$(./generate_dockerfile.sh)
         set -x
         echo '
         FROM {{ .repo }}
-        $(./generate_dockerfile.sh)
+        ${generate_dockerfile}
         ## how do we get custom values in here from the config.yaml?? eesh...
         ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
