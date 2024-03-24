@@ -217,7 +217,7 @@ tasks:
           {{- range $i, $v := $c.upstreams }}
           {{- with $root }}
             custom_{{ $i }}:
-              name: {{ $v.repo }}
+              name: {{ splitList "/" $v.repo | last }}
               runs-on: ubuntu-latest
               steps:
                 {{- .default_steps | nindent 6 -}}
