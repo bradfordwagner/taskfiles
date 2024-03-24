@@ -45,13 +45,21 @@ tasks:
       platforms: '{{ default "linux/amd64" .platforms }}'
       target_repo: '{{ default "quay.io/bradfordwagner/test" .target_repo }}'
       target_tag: '{{ default "latest" .target_tag }}'
+      use_cache: '{{ default "false" .use_cache }}'
+      progress: '{{ default "plain" .progress }}'
       v: '{{ default "{}" .v }}'
     cmds:
       - |
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
+        {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
+        cd {{ .USER_WORKING_DIR }}
         set -x
-        generate_dockerfile=$(. {{ .USER_WORKING_DIR }}/generate_dockerfile.sh '{{ .v }}')
+        generate_dockerfile=$(. generate_dockerfile.sh '{{ .v }}')
         echo "
         FROM {{ .repo }}
+        RUN mkdir /src
+        WORKDIR /src
+        COPY . .
+        RUN ls -lha
         ${generate_dockerfile}
-        " | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
+        " | docker buildx build --progress={{ .progress }} {{ $use_cache }} --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} -
