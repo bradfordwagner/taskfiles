@@ -9,6 +9,7 @@ version: '3'
 vars:
   task_version: 3.35.1
   buildx_version: v0.13.1
+  jq_version: 1.7
   on_tags: |
     on:
       push:
@@ -220,6 +221,10 @@ tasks:
               runs-on: ubuntu-latest
               steps:
                 {{- .default_steps | nindent 6 -}}
+                - name: jq={{ .jq_version }}
+                  uses: dcarbone/install-jq-action@v2
+                  with:
+                    version: {{ .jq_version }}
                 - name: qemu
                   uses: docker/setup-qemu-action@v3
                 - name: docker_buildx={{ .buildx_version }}
@@ -231,6 +236,7 @@ tasks:
                 - name: task={{ .ITEM }}
                   run: |
                     {{ $ci_tag := `\${{ github.ref_name }}` }}
+                    export v='{{ toJson $v }}'
                     task -t ./taskfiles/tasks/containers/custom.yml \
                       build \
                       repo={{ $v.repo }} \
