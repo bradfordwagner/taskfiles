@@ -53,7 +53,7 @@ tasks:
         # setup vars
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
         {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
-        {{- $upstream_tag := splitList "-" $repo | last }}
+        {{- $upstream_tag := splitList "-" .repo | last }}
         cd {{ .USER_WORKING_DIR }}
         set -x
 
