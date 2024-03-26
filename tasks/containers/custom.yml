@@ -18,12 +18,12 @@ tasks:
         target_repo: quay.io/bradfordwagner/ansible
         upstreams:
           - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.18      , platforms: [linux/amd64        , linux/arm64] }
-          # - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.19      , platforms: [linux/amd64        , linux/arm64] }
-          # - { repo: quay.io/bradfordwagner/base:3.0.0-archlinux_latest , platforms: [linux/amd64    ] }
-          # - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bookworm  , platforms: [linux/amd64        , linux/arm64] }
-          # - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bullseye  , platforms: [linux/amd64        , linux/arm64] }
-          # - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
-          # - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.19      , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-archlinux_latest , platforms: [linux/amd64    ] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bookworm  , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bullseye  , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
+          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
         EOF
       - |
         file={{ .USER_WORKING_DIR }}/generate_dockerfile.sh
@@ -53,6 +53,7 @@ tasks:
         # setup vars
         {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
         {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
+        {{- $upstream_tag := splitList "-" $repo | last }}
         cd {{ .USER_WORKING_DIR }}
         set -x
 
@@ -67,4 +68,4 @@ tasks:
         EOF
 
         # run build
-        docker buildx build --progress={{ .progress }} {{ $use_cache }} --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }} .
+        docker buildx build --progress={{ .progress }} {{ $use_cache }} --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }} {{ $tag }}-{{ $upstream_tag }} .
