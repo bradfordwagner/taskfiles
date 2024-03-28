@@ -68,4 +68,10 @@ tasks:
         EOF
 
         # run build
-        docker buildx build --progress={{ .progress }} {{ $use_cache }} --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }}-{{ $upstream_tag }} {{ $tag }} .
+        docker buildx build \\
+          --progress={{ .progress }} \\
+          {{ $use_cache }} \\
+          --platform {{ .platforms }} \\
+          -t {{ .target_repo }}:{{ .target_tag }}-{{ $upstream_tag }} \\
+          {{ $tag }} \\
+          .
