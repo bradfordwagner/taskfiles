@@ -75,7 +75,6 @@ tasks:
         echo use_cache=${use_cache}
         echo push_flag=${push_flag}
 
-
         # create the dockerfile
         generate_dockerfile=$(. generate_dockerfile.sh ${build})
         cat <<EOF > Dockerfile
@@ -94,6 +93,6 @@ tasks:
           --progress={{ .progress }} \
           ${use_cache} \
           --platform ${platforms} \
-          -t ${target_repo}:{{ .target_tag }}-${upstream_tag} \
+          -t ${target_repo}:{{ .target_tag }}-${os} \
           {{ $push_flag }} \
           .
