@@ -16,7 +16,7 @@ tasks:
         cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
         # created by init task for use with github actons
         target_repo: quay.io/bradfordwagner/template-mirror
-        mirrors:
+        builds:
           - { repo: alpine    , tag: '3.19'   , platforms: [linux/amd64    , linux/arm64] }
           - { repo: alpine    , tag: '3.18'   , platforms: [linux/amd64    , linux/arm64] }
           - { repo: debian    , tag: bookworm , platforms: [linux/amd64    , linux/arm64] }
@@ -29,18 +29,44 @@ tasks:
     desc: |
       This task is used to build the docker images
     vars:
-      # comma separated ist of platforms to build
-      repo: '{{ default "alpine" .repo }}'
-      repo_rename: '{{ .repo_rename }}'
-      repo_tag: '{{ default "latest" .repo_tag }}'
-      platforms: '{{ default "linux/amd64" .platforms }}'
-      target_repo: '{{ default "quay.io/bradfordwagner/template-mirror" .target_repo }}'
+      build: '{{ default "" .build }}'
       target_tag: '{{ default "latest" .target_tag }}'
     cmds:
       - |
-        {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
+        cd {{ .USER_WORKING_DIR }}
+
+        # resolve upstream - if none provided then use the first from config.yaml
+        build=$(echo '{{ .build }}')
+        if [[ "" == "{{ .build }}" ]]; then
+          build=$(yq -oj '.builds[0]' config.yaml | jq -rc '.')
+        fi
+
+        # resolve golang vars
+        {{- $push_flag := eq "true" .is_tag | ternary "--push" " " }}
         {{- $resolved_repo := default .repo .repo_rename }}
+
+        # resolve bash vars
+        repo=$(echo $build | jq -r '.repo')
+        repo_tag=$(echo $build | jq -r '.tag')
+        platforms=$(echo $build | jq -r '.platforms | join(",")')
+        push_flag={{ $push_flag }}
+        resolved_repo={{ $resolved_repo }}
+        target_repo=$(yq -r '.target_repo' config.yaml)
+        target_tag={{ .target_tag }}
+
+
+        # debug
+        echo -n build=
+        jq '.' <<< $build
+        echo repo=$repo
+        echo repo_tag=$repo_tag
+        echo platforms=$platforms
+        echo push_flag=$push_flag
+        echo resolved_repo=$resolved_repo
+        echo target_repo=$target_repo
+        echo target_tag=$target_tag
+
         set -x
-        echo '
-        FROM {{ .repo }}:{{ .repo_tag }}
-        ' | docker buildx build --platform {{ .platforms }} -t {{ .target_repo }}:{{ .target_tag }}-{{ $resolved_repo }}_{{ .repo_tag }} {{ $tag }} -
+        echo "
+        FROM ${repo}:${repo_tag}
+        " | docker buildx build --platform ${platforms} -t ${target_repo}:${target_tag}-${resolved_repo}_${repo_tag} ${push_flag} -
