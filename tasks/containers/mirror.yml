@@ -50,7 +50,6 @@ tasks:
         repo_tag=$(echo $build | jq -r '.tag')
         platforms=$(echo $build | jq -r '.platforms | join(",")')
         push_flag={{ $push_flag }}
-        resolved_repo={{ $resolved_repo }}
         target_repo=$(yq -r '.target_repo' config.yaml)
         target_tag={{ .target_tag }}
 
@@ -62,11 +61,10 @@ tasks:
         echo repo_tag=$repo_tag
         echo platforms=$platforms
         echo push_flag=$push_flag
-        echo resolved_repo=$resolved_repo
         echo target_repo=$target_repo
         echo target_tag=$target_tag
 
         set -x
         echo "
         FROM ${repo}:${repo_tag}
-        " | docker buildx build --platform ${platforms} -t ${target_repo}:${target_tag}-${resolved_repo}_${repo_tag} ${push_flag} -
+        " | docker buildx build --platform ${platforms} -t ${target_repo}:${target_tag}-${repo}_${repo_tag} ${push_flag} -
