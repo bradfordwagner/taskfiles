@@ -40,38 +40,60 @@ tasks:
     desc: |
       This task is used to build the docker images
     vars:
-      # comma separated ist of platforms to build
-      repo: '{{ default "quay.io/bradfordwagner/base:3.0.0-alpine_3.18" .repo }}'
-      platforms: '{{ default "linux/amd64" .platforms }}'
-      target_repo: '{{ default "quay.io/bradfordwagner/test" .target_repo }}'
+      build: '{{ default "" .build }}'
       target_tag: '{{ default "latest" .target_tag }}'
       use_cache: '{{ default "false" .use_cache }}'
       progress: '{{ default "plain" .progress }}'
-      v: '{{ default "{}" .v }}'
     cmds:
       - |
-        # setup vars
-        {{- $tag := eq "true" .is_tag | ternary "--push" " " }}
-        {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
-        {{- $upstream_tag := splitList "-" .repo | last }}
         cd {{ .USER_WORKING_DIR }}
-        set -x
+
+        # resolve upstream - if none provided then use the first from config.yaml
+        build=$(echo '{{ .build }}')
+        if [[ "" == "{{ .build }}" ]]; then
+          build=$(yq -oj '.builds[0]' config.yaml | jq -rc '.')
+        fi
+
+        # setup go vars
+        {{- $push_flag := eq "true" .is_tag | ternary "--push" " " }}
+        {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
+
+        # resolve shell vars
+        os=$(echo ${build} | jq -r '.os')
+        platforms=$(echo ${build} | jq -r '.platforms | join(",")')
+        upstream_tag=$(yq -r '.upstream.tag' config.yaml)
+        push_flag={{ $push_flag }}
+        use_cache={{ $use_cache }}
+        repo=$(yq -r '.upstream.repo' config.yaml):$(yq -r '.upstream.tag' config.yaml)-${os}
+
+        # debug vars
+        echo -n build=
+        echo ${build} | jq '.'
+        echo repo=${repo}
+        echo platforms=${platforms}
+        echo upstream_tag=${upstream_tag}
+        echo use_cache=${use_cache}
+        echo push_flag=${push_flag}
+
 
         # create the dockerfile
-        generate_dockerfile=$(. generate_dockerfile.sh '{{ .v }}')
+        generate_dockerfile=$(. generate_dockerfile.sh ${build})
         cat <<EOF > Dockerfile
-        FROM {{ .repo }}
+        FROM ${repo}
         RUN mkdir /src
         WORKDIR /src
         COPY . .
         ${generate_dockerfile}
         EOF
 
+        set -x
+
         # run build
-        docker buildx build \\
-          --progress={{ .progress }} \\
-          {{ $use_cache }} \\
-          --platform {{ .platforms }} \\
-          -t {{ .target_repo }}:{{ .target_tag }}-{{ $upstream_tag }} \\
-          {{ $tag }} \\
+        target_repo=$(yq -r '.target_repo' config.yaml)
+        docker buildx build \
+          --progress={{ .progress }} \
+          ${use_cache} \
+          --platform ${platforms} \
+          -t ${target_repo}:{{ .target_tag }}-${upstream_tag} \
+          {{ $push_flag }} \
           .
