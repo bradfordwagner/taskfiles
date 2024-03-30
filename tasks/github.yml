@@ -77,35 +77,37 @@ tasks:
     cmds:
       - task: mkdir
         ignore_error: true
-      - |
-        cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
-        name: ansible_role
-        on:
-          - push
-          - workflow_dispatch
-        jobs:
-          ansible-role:
-            strategy:
-              fail-fast: false
-              matrix:
-                os:
-                  - alpine_3.16
-                  - alpine_3.17
-                  # - archlinux_latest
-                  - debian_bookworm
-                  - debian_bullseye
-                  - ubuntu_focal
-                  # - ubuntu_kinetic
-                  - ubuntu_lunar
-                tag: [3.6.2]
-            runs-on: ubuntu-latest
-            container:
-              image: {{ `quay.io/bradfordwagner/ansible:\${{ matrix.tag }}-\${{ matrix.os }}`}}
-            steps:
-              {{- .default_steps | nindent 6 -}}
-              - name: task=branches
-                run: task -t ./taskfiles/tasks/ansible_role.yml
-        EOF
+        # delete old configuraton for ansible role - remoe after rev'd in all repos
+      - cmd: rm {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
+        ignore_error: true
+      - for: [branches]
+        cmd: |
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role_{{ .ITEM }}.yml
+          name: ansible_role
+          on:
+            - push
+            - workflow_dispatch
+          jobs:
+            {{- .config_yaml | nindent 2 -}}
+            ansible-role:
+              name: {{ `\${{ matrix.build.os }}`}}
+              needs: config-yaml
+              runs-on: ubuntu-latest
+              strategy:
+                fail-fast: false
+                matrix:
+                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
+              container:
+                image: {{ printf "%s:%s-%s"
+                  `\${{ fromJSON(needs.config-yaml.outputs.config).upstream.repo }}`
+                  `\${{ fromJSON(needs.config-yaml.outputs.config).upstream.tag }}`
+                  `\${{ matrix.build.os }}`
+                  }}
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - name: task=branches
+                  run: task -t ./taskfiles/tasks/ansible_role.yml
+          EOF
   yaml_lint:
     cmds:
       - task: mkdir
