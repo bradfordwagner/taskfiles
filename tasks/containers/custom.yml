@@ -54,6 +54,10 @@ tasks:
           build=$(yq -oj '.builds[0]' config.yaml | jq -rc '.')
         fi
 
+        echo -n build=
+        echo ${build} | jq '.'
+        exit
+
         # setup go vars
         {{- $push_flag := eq "true" .is_tag | ternary "--push" " " }}
         {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
