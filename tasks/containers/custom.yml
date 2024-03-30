@@ -15,15 +15,19 @@ tasks:
       - |
         cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
         # created by init task for use with github actons
-        target_repo: quay.io/bradfordwagner/ansible
-        upstreams:
-          - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.18      , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-alpine_3.19      , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-archlinux_latest , platforms: [linux/amd64    ] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bookworm  , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-debian_bullseye  , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_mantic    , platforms: [linux/amd64        , linux/arm64] }
-          - { repo: quay.io/bradfordwagner/base:3.0.0-ubuntu_noble     , platforms: [linux/amd64        , linux/arm64] }
+        target_repo: ghcr.io/bradfordwagner/ansible
+        upstream:
+          repo: ghcr.io/bradfordwagner/base
+          tag: 3.3.0
+        builds:
+          - { os: alpine_3.18      , platforms: [linux/amd64      , linux/arm64]        , pkg_installer: alpine }
+          - { os: alpine_3.19      , platforms: [linux/amd64      , linux/arm64]        , pkg_installer: alpine }
+          - { os: archlinux_latest , platforms: [linux/amd64    ] , pkg_installer: arch }
+          - { os: debian_bookworm  , platforms: [linux/amd64      , linux/arm64]        , pkg_installer: debian }
+          - { os: ubuntu_mantic    , platforms: [linux/amd64      , linux/arm64]        , pkg_installer: debian }
+          - { os: ubuntu_noble     , platforms: [linux/amd64      , linux/arm64]        , pkg_installer: debian }
+          # bullseye's latest support is 8.7.0, whilst everything supports 9.3.0
+          # - { os: debian_bullseye  , platforms: [linux/amd64      , linux/arm64] , pkg_installer: debian }
         EOF
       - |
         file={{ .USER_WORKING_DIR }}/generate_dockerfile.sh
