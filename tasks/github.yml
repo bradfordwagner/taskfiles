@@ -119,9 +119,9 @@ tasks:
             runs-on: ubuntu-latest
             steps:
               {{- .default_steps | nindent 6 -}}
-              - name: Install yamllint
+              - name: install=yamllint
                 run: pip install --user yamllint
-              - name: Invoke YAML Lint
+              - name: run=yamllint
                 run: task -t ./taskfiles/tasks/yaml_lint.yml
         EOF
   go_releaser:
