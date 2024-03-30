@@ -15,9 +15,6 @@ tasks:
     cmds:
       - |
         cd ${wd}
-        # this is used for ghcr.io/bradfordwagner/ansible builds
-        [ -f /root/myenv/bin/activate ] && . /root/myenv/bin/activate || echo "Skipping myenv activate"
-
         [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
         [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
         set -e
