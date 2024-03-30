@@ -200,23 +200,21 @@ tasks:
             {{ .ITEM }}:
               runs-on: ubuntu-latest
               needs: config-yaml
-              name: {{ `\${{ matrix.mirror.repo }}_\${{ matrix.mirror.tag }}`}}
+              name: {{ `\${{ matrix.build.repo }}_\${{ matrix.build.tag }}`}}
               strategy:
                 fail-fast: false
                 matrix:
-                  mirror: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).mirrors }}` }}
+                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
               steps:
                 {{- .default_steps | nindent 6 -}}
                 {{- .docker_steps | nindent 6 -}}
                 - name: task={{ .ITEM }}
                   run: |
                     {{- $ci_tag := `\${{ github.ref_name }}` }}
+                    build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
                     task -t ./taskfiles/tasks/containers/mirror.yml \\
                       build \\
-                      repo={{ `\${{ matrix.mirror.repo }}`}} \\
-                      repo_tag={{ `\${{ matrix.mirror.tag }}`}} \\
-                      platforms={{ `\${{ join(matrix.mirror.platforms,',') }}`}} \\
-                      target_repo={{ `\${{ fromJSON(needs.config-yaml.outputs.config).target_repo }}`}} \\
+                      build=\${build} \\
                       target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
                       is_tag={{ eq .ITEM "tags" }}
           EOF
