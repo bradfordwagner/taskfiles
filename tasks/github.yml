@@ -121,7 +121,7 @@ tasks:
               {{- .default_steps | nindent 6 -}}
               - name: install=yamllint
                 run: pip install --user yamllint
-              - name: run=yamllint
+              - name: task=yamllint
                 run: task -t ./taskfiles/tasks/yaml_lint.yml
         EOF
   go_releaser:

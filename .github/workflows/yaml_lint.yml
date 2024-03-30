@@ -17,5 +17,5 @@ jobs:
           repository: bradfordwagner/taskfiles
       - name: install=yamllint
         run: pip install --user yamllint
-      - name: run=yamllint
+      - name: task=yamllint
         run: task -t ./taskfiles/tasks/yaml_lint.yml
