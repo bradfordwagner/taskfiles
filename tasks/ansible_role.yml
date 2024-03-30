@@ -16,6 +16,7 @@ tasks:
       - |
         cd ${wd}
         [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
+        [ -f ${HOME}/myenv/bin/activate ] && . ${HOME}/myenv/bin/activate || echo "Skipping myenv activate"
         [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
         set -e
         ansible-playbook ${test_file}
