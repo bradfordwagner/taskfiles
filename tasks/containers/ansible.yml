@@ -96,9 +96,9 @@ tasks:
         RUN mkdir -p /src
         WORKDIR /src
         COPY . .
-        RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found" \\
+        RUN [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found" \\
           && set -e \\
-          && ansible-playbook test.yml
+          && ansible-playbook playbook.yml
         EOF
 
         set -x
