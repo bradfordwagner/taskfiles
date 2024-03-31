@@ -10,7 +10,7 @@ vars:
 tasks:
   init_role:
     desc: |
-      This task is used to create the config.yaml file to initialize mirror builds
+      This task is used to create the config.yaml file to initialize ansible role builds
     cmds:
       - |
         cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
@@ -26,3 +26,88 @@ tasks:
           - os: ubuntu_mantic
           - os: ubuntu_noble
         EOF
+  init_playbook:
+    desc: |
+      This task is used to create the config.yaml file to initialize ansible playbook builds
+    cmds:
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
+        # created by init task for use with github actons
+        upstream:
+          repo: ghcr.io/bradfordwagner/ansible
+          tag: 5.1.2
+        builds:
+          - os: alpine_3.18
+            platforms: [linux/amd64, linux/arm64]
+          - os: alpine_3.19
+            platforms: [linux/amd64, linux/arm64]
+          - os: archlinux_latest
+            platforms: [linux/amd64]
+          - os: debian_bookworm
+            platforms: [linux/amd64, linux/arm64]
+          - os: ubuntu_mantic
+            platforms: [linux/amd64, linux/arm64]
+          - os: ubuntu_noble
+            platforms: [linux/amd64, linux/arm64]
+        EOF
+  build:
+    desc: |
+      This task is used to build the docker images
+    vars:
+      build: '{{ default "" .build }}'
+      target_tag: '{{ default "latest" .target_tag }}'
+      use_cache: '{{ default "false" .use_cache }}'
+      progress: '{{ default "plain" .progress }}'
+    cmds:
+      - |
+        cd {{ .USER_WORKING_DIR }}
+
+        # resolve upstream - if none provided then use the first from config.yaml
+        build=$(echo '{{ .build }}')
+        if [[ "" == "{{ .build }}" ]]; then
+          build=$(yq -oj '.builds[0]' config.yaml | jq -rc '.')
+        fi
+
+        # setup go vars
+        {{- $push_flag := eq "true" .is_tag | ternary "--push" " " }}
+        {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
+
+        # resolve shell vars
+        os=$(echo ${build} | jq -r '.os')
+        platforms=$(echo ${build} | jq -r '.platforms | join(",")')
+        upstream_tag=$(yq -r '.upstream.tag' config.yaml)
+        push_flag={{ $push_flag }}
+        use_cache={{ $use_cache }}
+        repo=$(yq -r '.upstream.repo' config.yaml):$(yq -r '.upstream.tag' config.yaml)-${os}
+
+        # debug vars
+        echo -n build=
+        echo ${build} | jq '.'
+        echo repo=${repo}
+        echo platforms=${platforms}
+        echo upstream_tag=${upstream_tag}
+        echo use_cache=${use_cache}
+        echo push_flag=${push_flag}
+
+        # create the dockerfile
+        cat <<EOF > Dockerfile
+        FROM ${repo}
+        RUN mkdir /src
+        WORKDIR /src
+        COPY . .
+        RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found" \\
+          && set -e \\
+          && ansible-playbook test.yml
+        EOF
+
+        set -x
+
+        # run build
+        target_repo=$(yq -r '.target_repo' config.yaml)
+        docker buildx build \
+          --progress={{ .progress }} \
+          ${use_cache} \
+          --platform ${platforms} \
+          -t ${target_repo}:{{ .target_tag }}-${os} \
+          {{ $push_flag }} \
+          .
