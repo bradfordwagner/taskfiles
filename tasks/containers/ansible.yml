@@ -17,7 +17,7 @@ tasks:
         # created by init task for use with github actons
         upstream:
           repo: ghcr.io/bradfordwagner/ansible
-          tag: 5.1.2
+          tag: 5.2.0
         builds:
           - os: alpine_3.18
           - os: alpine_3.19
@@ -36,20 +36,20 @@ tasks:
         target_repo: ghcr.io/bradfordwagner/test
         upstream:
           repo: ghcr.io/bradfordwagner/ansible
-          tag: 5.1.2
+          tag: 5.2.0
         builds:
           - os: alpine_3.18
-            platforms: [linux/amd64, linux/arm64]
+            platforms: [linux/amd64]
           - os: alpine_3.19
-            platforms: [linux/amd64, linux/arm64]
+            platforms: [linux/amd64]
           - os: archlinux_latest
             platforms: [linux/amd64]
           - os: debian_bookworm
-            platforms: [linux/amd64, linux/arm64]
+            platforms: [linux/amd64]
           - os: ubuntu_mantic
-            platforms: [linux/amd64, linux/arm64]
+            platforms: [linux/amd64]
           - os: ubuntu_noble
-            platforms: [linux/amd64, linux/arm64]
+            platforms: [linux/amd64]
         EOF
   build:
     desc: |
