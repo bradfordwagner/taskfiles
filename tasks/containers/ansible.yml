@@ -92,7 +92,8 @@ tasks:
         # create the dockerfile
         cat <<EOF > Dockerfile
         FROM ${repo}
-        RUN mkdir /src
+        RUN rm -rf /src || echo "No Source Directory Found"
+        RUN mkdir -p /src
         WORKDIR /src
         COPY . .
         RUN [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found" \\
