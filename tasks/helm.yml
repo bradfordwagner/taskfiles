@@ -22,5 +22,6 @@ tasks:
       - cd {{ .USER_WORKING_DIR }} && helm dependency build
   default:
     cmds:
+      - task: dependencies
       - task: lint
       - task: template
