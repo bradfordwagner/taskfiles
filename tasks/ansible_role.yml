@@ -47,7 +47,7 @@ tasks:
         # which will allow lead to repo file modification
         tmp_dockerfile=$(mktemp /tmp/Dockerfile.XXXXX)
         cat <<EOF > ${tmp_dockerfile}
-        FROM ${img}
+        FROM --platform=linux/amd64 ${img}
         WORKDIR /src
         COPY . .
         EOF
