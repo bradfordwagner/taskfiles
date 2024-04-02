@@ -16,7 +16,7 @@ tasks:
       - task: setup_cluster
         vars:
           cluster: '{{ .cluster }}'
-        for: { var: clusters, split: ',', as: cluster }
+        for: {var: clusters, split: ',', as: cluster}
   setup_cluster:
     internal: true
     vars:
