@@ -28,8 +28,13 @@ tasks:
         orig={{ .install_dir }}/{{ .cluster }}_tmp
         mod={{ .install_dir }}/{{ .cluster }}
         set -x
+        # copy from remote
         rsync -av {{ .remote_host }}:{{ .remote_dir }}/{{ .cluster }} ${orig}
+        # replace bind addr with dns name
         cat ${orig} | sed 's|https://0.0.0.0:|https://{{ .remote_host }}:|g' > ${mod}
+        # cleanup tmp file
         rm ${orig}
+        # set permissions
         chmod 600 ${mod}
+        # smoketest
         KUBECONFIG=${mod} kubectl get po -A
