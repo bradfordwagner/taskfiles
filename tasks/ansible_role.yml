@@ -57,4 +57,3 @@ tasks:
         docker run -it --platform=linux/amd64 ${intermediate_tag} sh -c '
         {{ .build_cmds }}
         '
-
