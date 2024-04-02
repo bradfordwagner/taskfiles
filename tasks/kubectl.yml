@@ -41,3 +41,7 @@ tasks:
         vars:
           action: '{{ .action }}'
           file: '{{ .ITEM }}'
+  kubefwd:
+    desc: forwards kubernetes services to localhost
+    cmds:
+      - sudo -E kubefwd svc --all-namespaces -d cluster.local
