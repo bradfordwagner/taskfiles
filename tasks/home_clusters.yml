@@ -1,0 +1,35 @@
+---
+version: '3'
+
+description: |
+  task helper for setting up home clusters for mba
+
+vars:
+  remote_host: bwagner-studio
+  remote_dir: ~/.kube
+  clusters: 'admin,cicd'
+  install_dir: ~/.kube
+
+tasks:
+  default:
+    cmds:
+      - task: setup_cluster
+        vars:
+          cluster: '{{ .cluster }}'
+        for: { var: clusters, split: ',', as: cluster }
+  setup_cluster:
+    internal: true
+    vars:
+      cluster: '{{ .cluster }}'
+    cmds:
+      - cmd: rm  {{ .install_dir }}/{{ .cluster }}
+        ignore_error: true
+      - |
+        orig={{ .install_dir }}/{{ .cluster }}_tmp
+        mod={{ .install_dir }}/{{ .cluster }}
+        set -x
+        rsync -av {{ .remote_host }}:{{ .remote_dir }}/{{ .cluster }} ${orig}
+        cat ${orig} | sed 's|https://0.0.0.0:|https://{{ .remote_host }}:|g' > ${mod}
+        rm ${orig}
+        chmod 600 ${mod}
+        KUBECONFIG=${mod} kubectl get po -A
