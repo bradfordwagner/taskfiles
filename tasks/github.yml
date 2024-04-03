@@ -160,6 +160,7 @@ tasks:
           {{- end -}}
           jobs:
             go-releaser-{{ .ITEM }}:
+              permissions: write-all
               runs-on: ubuntu-latest
               steps:
                 {{- .default_steps | nindent 6 -}}
