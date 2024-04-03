@@ -80,7 +80,7 @@ tasks:
         # delete old configuraton for ansible role - remoe after rev'd in all repos
       - cmd: rm {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
         ignore_error: true
-      - for: [branches,tags]
+      - for: [branches, tags]
         cmd: |
           cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role_{{ .ITEM }}.yml
           name: ansible_role_{{ .ITEM }}
