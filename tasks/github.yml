@@ -218,6 +218,7 @@ tasks:
             {{- .config_yaml | nindent 2 -}}
             {{ .ITEM }}:
               runs-on: ubuntu-latest
+              permissions: write-all
               needs: config-yaml
               name: {{ `\${{ matrix.build.repo }}_\${{ matrix.build.tag }}`}}
               strategy:
@@ -260,6 +261,7 @@ tasks:
           {{- .config_yaml | nindent 2 -}}
             {{ .ITEM }}:
               name: {{ `\${{ matrix.build.os }}` }}
+              permissions: write-all
               runs-on: ubuntu-latest
               needs: config-yaml
               strategy:
@@ -301,6 +303,7 @@ tasks:
           jobs:
           {{- .config_yaml | nindent 2 -}}
             {{ .ITEM }}:
+              permissions: write-all
               name: {{ `\${{ matrix.build.os }}` }}
               runs-on: ubuntu-latest
               needs: config-yaml
