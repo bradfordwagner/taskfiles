@@ -80,16 +80,18 @@ tasks:
         # delete old configuraton for ansible role - remoe after rev'd in all repos
       - cmd: rm {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
         ignore_error: true
-      - for: [branches]
+      - for: [branches,tags]
         cmd: |
           cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role_{{ .ITEM }}.yml
-          name: ansible_role
-          on:
-            - push
-            - workflow_dispatch
+          name: ansible_role_{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
           jobs:
             {{- .config_yaml | nindent 2 -}}
-            ansible-role:
+            ansible-role-{{ .ITEM }}:
               name: {{ `\${{ matrix.build.os }}`}}
               needs: config-yaml
               runs-on: ubuntu-latest
@@ -107,6 +109,20 @@ tasks:
                 {{- .default_steps | nindent 6 -}}
                 - name: task=branches
                   run: task -t ./taskfiles/tasks/ansible_role.yml
+          {{- if eq .ITEM "tags" }}
+            ansible-role-{{ .ITEM }}-publish:
+              name: publish
+              needs: [config-yaml, ansible-role-{{ .ITEM }}]
+              runs-on: ubuntu-latest
+              steps:
+                - name: checkout=self
+                  uses: actions/checkout@v4
+                - name: galaxy_publish
+                  uses: robertdebock/galaxy-action@1.2.0
+                  with:
+                    galaxy_api_key: {{ `\${{ secrets.GALAXY_TOKEN }}`}}
+                    git_branch: {{ `\${{ github.ref_name }}`}}
+          {{- end }}
           EOF
   yaml_lint:
     cmds:

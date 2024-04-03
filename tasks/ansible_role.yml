@@ -19,7 +19,46 @@ tasks:
       - |
         cd ${wd}
         {{ .build_cmds }}
+  delete_role_from_galaxy:
+    desc: |
+      Deletes the role in galaxy
+    vars:
+      token: '{{ .token }}'
+    cmds:
+      - |
+        cd ${wd}
 
+        # parse user and repo from git remote
+        get_url=$(git remote get-url origin)
+        user=$(echo ${get_url} | sed -E 's|https://github.com/(.*)/.*$|\1|g')
+        repo=$(echo ${get_url} | sed -E 's|https://github.com/.*/(.*).git$|\1|g')
+
+        role=$(yq -r '.galaxy_info.role_name' ./meta/main.yml)
+
+        # import the role into ansible galaxy
+        ansible-galaxy role delete --token {{ .token }} ${user} ${repo}
+  publish_role_to_galaxy:
+    desc: |
+      Publishes the role to galaxy
+    vars:
+      token: '{{ .token }}'
+    silent: true
+    cmds:
+      - |
+        cd ${wd}
+
+        # parse user and repo from git remote
+        get_url=$(git remote get-url origin)
+        user=$(echo ${get_url} | sed -E 's|https://github.com/(.*)/.*$|\1|g')
+        # https://serverfault.com/questions/417241/extract-repository-name-from-github-url-in-bash
+        repo_suffix=$(basename ${get_url} )
+        repo=${repo_suffix%.*}
+        echo user=${user} repo=${repo}
+
+        role=$(yq -r '.galaxy_info.role_name' ./meta/main.yml)
+
+        # import the role into ansible galaxy
+        ansible-galaxy role import --role-name ${role} --token "{{ .token }}" ${user} ${repo}
   local_container:
     cmds:
       - |
