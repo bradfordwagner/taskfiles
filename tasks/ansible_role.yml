@@ -60,6 +60,8 @@ tasks:
         # import the role into ansible galaxy
         ansible-galaxy role import --role-name ${role} --token "{{ .token }}" ${user} ${repo}
   local_container:
+    vars:
+      platform: '{{ default "linux/amd64" .platform }}'
     cmds:
       - |
         cd ${wd}
@@ -91,8 +93,8 @@ tasks:
         COPY . .
         EOF
         intermediate_tag=ansible-role-$((RANDOM))
-        docker build --platform=linux/amd64 -t ${intermediate_tag} -f ${tmp_dockerfile} .
+        docker build --platform={{ .platform }} -t ${intermediate_tag} -f ${tmp_dockerfile} .
 
-        docker run -it --platform=linux/amd64 ${intermediate_tag} sh -c '
+        docker run -it --platform={{ .platform }} ${intermediate_tag} sh -c '
         {{ .build_cmds }}
         '
