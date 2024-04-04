@@ -2,11 +2,14 @@
 version: '3'
 
 description: |
-  This is used to lint all the yaml files in the project.
+  This is used to help create git conventional commits following
+  https://www.conventionalcommits.org/en/v1.0.0/#specification, and
+  https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional
 
 tasks:
   default:
     silent: true
+    desc: Helper to write git conventional commits
     cmds:
       - |
         # select commit type
