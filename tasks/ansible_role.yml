@@ -12,8 +12,8 @@ vars:
     [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No meta/requirements.yml Found"
     [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
     set -e
-    [ -f {{ .test_file }} ] && ansible-playbook {{ .test_file }}
-    [ -f playbook.yml ] && ansible-playbook playbook.yml
+    [ -f {{ .test_file }} ] && ansible-playbook {{ .test_file }} || Skipping '{{ .test_file }}'
+    [ -f playbook.yml ] && ansible-playbook playbook.yml || echo Skipping 'playbook.yaml'
 tasks:
   default:
     cmds:
