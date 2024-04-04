@@ -9,10 +9,11 @@ vars:
   test_file: '{{ default "test.yml" .test_file }}'
   build_cmds: |
     [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
-    [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
+    [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No meta/requirements.yml Found"
+    [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
     set -e
-    ansible-playbook {{ .test_file }}
-
+    [ -f {{ .test_file }} ] && ansible-playbook {{ .test_file }}
+    [ -f playbook.yml ] && ansible-playbook playbook.yml
 tasks:
   default:
     cmds:
