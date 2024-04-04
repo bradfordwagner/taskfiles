@@ -1,0 +1,50 @@
+---
+version: '3'
+
+description: |
+  This is used to lint all the yaml files in the project.
+
+tasks:
+  default:
+    silent: true
+    cmds:
+      - |
+        # select commit type
+        # source: https://github.com/pvdlg/conventional-changelog-metahub/blob/master/README.md
+        items=(
+          "feat -- A new feature"
+          "fix -- A bug Fix"
+          "docs -- Documentation only changes"
+          "style -- Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)"
+          "refactor -- A code change that neither fixes a bug nor adds a feature"
+          "perf -- A code change that improves performance"
+          "test -- Adding missing tests or correcting existing tests"
+          "build -- Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)"
+          "ci -- Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)"
+          "chore -- Other changes that don't modify src or test files"
+          "revert -- Reverts a previous commit"
+        )
+        commit_type=$(printf "%s\n" "${items[@]}" \
+         | fzf --exit-0 --delimiter=" -- " --bind "enter:become:echo {1}" --prompt="Select a commit type: "
+        )
+
+        items=(
+          " -- no"
+          "! -- yes BREAK BREAK BREAK"
+        )
+        breaking_change=$(printf "%s\n" "${items[@]}" \
+         | fzf --exit-0 --delimiter=" -- " --bind "enter:become:echo {1}" --prompt="Is it a breaking change? "
+        )
+
+        # scope
+        echo -n "scope: "
+        read scope
+        [ -n "$scope" ] && scope="($scope)"
+
+        # message
+        echo -n "message: "
+        read message
+
+        output="${commit_type}${scope}: ${message}"
+        echo ${output}
+        echo ${output} | pbcopy
