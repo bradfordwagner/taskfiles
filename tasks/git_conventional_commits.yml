@@ -31,19 +31,19 @@ tasks:
          | fzf --exit-0 --delimiter=" -- " --bind "enter:become:echo {1}" --prompt="Select a commit type: "
         )
 
+        # scope
+        echo -n "scope: "
+        read scope
+        [ -n "$scope" ] && scope="($scope)"
+
         # breaking change
         items=(
           " -- no"
           "! -- yes BREAK BREAK BREAK"
         )
         breaking_change=$(printf "%s\n" "${items[@]}" \
-         | fzf --exit-0 --delimiter=" -- " --bind "enter:become:echo {1}" --prompt="Is it a breaking change? "
+          | fzf --exit-0 --delimiter=" -- " --height=4 --bind "enter:become:echo {1}" --prompt="Is it a breaking change? "
         )
-
-        # scope
-        echo -n "scope: "
-        read scope
-        [ -n "$scope" ] && scope="($scope)"
 
         # message
         echo -n "message: "
