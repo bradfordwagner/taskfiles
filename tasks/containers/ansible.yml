@@ -36,20 +36,20 @@ tasks:
         target_repo: ghcr.io/bradfordwagner/test
         upstream:
           repo: ghcr.io/bradfordwagner/ansible
-          tag: 5.2.0
+          tag: 5.3.2
         builds:
           - os: alpine_3.18
-            platforms: [linux/amd64]
+            platforms: [linux/amd64, linux/arm64]
           - os: alpine_3.19
-            platforms: [linux/amd64]
+            platforms: [linux/amd64, linux/arm64]
           - os: archlinux_latest
             platforms: [linux/amd64]
           - os: debian_bookworm
-            platforms: [linux/amd64]
+            platforms: [linux/amd64, linux/arm64]
           - os: ubuntu_mantic
-            platforms: [linux/amd64]
+            platforms: [linux/amd64, linux/arm64]
           - os: ubuntu_noble
-            platforms: [linux/amd64]
+            platforms: [linux/amd64, linux/arm64]
         EOF
   build:
     desc: |
