@@ -62,7 +62,7 @@ tasks:
         ansible-galaxy role import --role-name ${role} --token "{{ .token }}" ${user} ${repo}
   local_container:
     vars:
-      platform: '{{ default "linux/amd64" .platform }}'
+      platform: '{{ default "linux/arm64" .platform }}'
     cmds:
       - |
         cd ${wd}
