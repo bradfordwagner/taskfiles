@@ -1,10 +1,20 @@
 ---
 version: '3'
 
-includes:
-  echo: ./echo.yml
-
 tasks:
+  init_workspaces:
+    desc: |
+      This task is used to create the config.yaml file to initialize terraform workspace builds
+    cmds:
+      - |
+        cat <<EOF > {{ .USER_WORKING_DIR }}/config.yaml
+        # created by init task for use with github actons
+        workspaces:
+          - name: dev
+            path: ./environments/dev
+          - name: tst
+            path: ./environments/tst
+        EOF
   action:
     internal: true
     vars:
@@ -18,7 +28,6 @@ tasks:
       workspace_name: '{{ .workspace_name }}'
       workspace_path: '{{ .workspace_path }}'
     cmds:
-      - task: echo:clear
       - |
         echo workspace_name=${workspace_name}, workspace_path=${workspace_path}, backend=${backend}, tf_action=${tf_action}
         # initialize variables

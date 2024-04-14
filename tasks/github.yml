@@ -11,6 +11,7 @@ vars:
   buildx_version: v0.13.1
   jq_version: 1.7
   yq_version: v4.43.1
+  terraform_version: 1.5.7
   on_tags: |
     on:
       push:
@@ -324,3 +325,55 @@ tasks:
                       target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
                       is_tag={{ eq .ITEM "tags" }}
           EOF
+
+  terraform_workspaces:
+    vars:
+      config:
+        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches, tags]
+        cmd: |
+          {{- $c := fromJson .config -}}
+          {{- $root := . -}}
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/terraform_workspaces_{{ .ITEM }}.yml
+          name: terraform-workspaces{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          jobs:
+          {{- .config_yaml | nindent 2 -}}
+            {{ .ITEM }}:
+              permissions: write-all
+              name: {{ `\${{ matrix.workspace.name }}` }}
+              runs-on: ubuntu-latest
+              needs: config-yaml
+              strategy:
+                fail-fast: false
+                matrix:
+                  workspace: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).workspaces }}` }}
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - uses: hashicorp/setup-terraform@v3
+                  name: terraform={{ .terraform_version }}
+                  with:
+                    terraform_version: {{ .terraform_version }}
+                - name: debug
+                  run: |
+                    echo workspace={{ `\${{ matrix.workspace.name }}` }}
+                    echo path={{ `\${{ matrix.workspace.path }}` }}
+                    which terraform
+                    terraform version
+          EOF
+    # - name: task={{ .ITEM }}
+    #   run: |
+    #     {{ $ci_tag := `\${{ github.ref_name }}` }}
+    #     build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
+    #     task -t ./taskfiles/tasks/containers/ansible.yml \\
+    #       build \\
+    #       build=\${build} \\
+    #       target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
+    #       is_tag={{ eq .ITEM "tags" }}
