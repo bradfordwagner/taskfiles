@@ -338,7 +338,7 @@ tasks:
           {{- $c := fromJson .config -}}
           {{- $root := . -}}
           cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/terraform_workspaces_{{ .ITEM }}.yml
-          name: terraform-workspaces{{ .ITEM }}
+          name: terraform-workspaces-{{ .ITEM }}
           {{- if eq .ITEM "tags" }}
           {{ .on_tags -}}
           {{- else }}
