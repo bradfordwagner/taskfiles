@@ -1,6 +1,9 @@
 ---
 version: '3'
 
+includes:
+  vault: ./vault.yml
+
 tasks:
   init_workspaces:
     desc: |
@@ -15,33 +18,56 @@ tasks:
           - name: tst
             path: ./environments/tst
         EOF
-  action:
-    internal: true
+  workspaces:
     vars:
       # plan|apply|destroy
       tf_action: '{{ .tf_action | default "plan" }}'
       # true|false
-      backend: '{{ .backend | default "false" }}'
+      # backend: '{{ .backend | default "false" }}'
+      workspace: '{{ default "" .workspace }}'
+      kv2_secrets:
+        # sh: find {{ .USER_WORKING_DIR }} -maxdepth 1 -type d -not -name '{{ .USER_WORKING_DIR }}' | sed '1d'
+        sh: yq -r '.secrets.kv[].path' {{ .USER_WORKING_DIR }}/config.yaml
     env:
       tf_action: '{{ .tf_action }}'
-      backend: '{{ .backend }}'
+      # backend: '{{ .backend }}'
       workspace_name: '{{ .workspace_name }}'
       workspace_path: '{{ .workspace_path }}'
     cmds:
-      - |
-        echo workspace_name=${workspace_name}, workspace_path=${workspace_path}, backend=${backend}, tf_action=${tf_action}
-        # initialize variables
-        [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
-        [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
-        [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
+      # - task: vault:status
+      - task: vault:clean_env_file
+      - for: {var: kv2_secrets}
+        task: vault:kv2_env
+        vars:
+          path: '{{ .ITEM }}'
+      - cmd: |
+          # source and delete secrets env file
+          . {{ .env_secrets_file }}
+          rm -f {{ .env_secrets_file }}
 
-        set -x
-        [[ 'true' == "${backend}" ]] && terraform ${chdir} init -backend-config=$(pwd)/backend.hcl -input=false
-        terraform ${chdir} workspace select -or-create=true ${workspace_name}
-        terraform ${chdir} workspace list
-        terraform ${chdir} plan -lock=true -input=false ${tfvars} ${tf_plan_action}
+          cd {{ .USER_WORKING_DIR }}
+          # resolve upstream - if none provided then use the first from config.yaml
+          workspace=$(echo '{{ .workspace }}')
+          if [[ "" == "{{ .workspace }}" ]]; then
+            workspace=$(yq -oj '.workspaces[0]' config.yaml | jq -rc '.')
+          fi
+          echo ${workspace} | jq '.'
 
-        # apply only on tags!
-        if [ 'plan' != "${tf_action}" ]; then
-          terraform ${chdir} ${tf_action} -auto-approve -lock=true -input=false ${tfvars}
-        fi
+          # initialize variables
+          workspace_name=$(echo ${workspace} | jq -r '.name')
+          workspace_path=$(echo ${workspace} | jq -r '.path')
+          [ './' != "${workspace_path}" ] && chdir="-chdir=${workspace_path}"
+          [[ -f ${workspace_path}/terraform.tfvars ]] && tfvars="-var-file=${workspace_path}/terraform.tfvars"
+          [ 'destroy' == "${tf_action}" ] && tf_plan_action='-destroy'
+          echo workspace_name=${workspace_name}, workspace_path=${workspace_path}, backend=${backend}, tf_action=${tf_action}
+
+          set -x
+          [[ -f {{ .USER_WORKING_DIR }}/backend.hcl ]] && terraform ${chdir} init -backend-config={{ .USER_WORKING_DIR }}/backend.hcl -input=false
+          terraform ${chdir} workspace select -or-create=true ${workspace_name}
+          terraform ${chdir} workspace list
+          terraform ${chdir} plan -lock=true -input=false ${tfvars} ${tf_plan_action}
+
+          # select action
+          if [ 'plan' != "${tf_action}" ]; then
+            terraform ${chdir} ${tf_action} -auto-approve -lock=true -input=false ${tfvars}
+          fi

@@ -1,0 +1,37 @@
+---
+version: '3'
+
+description: |
+  This is used to write secrets to the repo
+
+vars:
+  env_secrets_file: "{{ .USER_WORKING_DIR }}/.secrets.sh"
+
+env:
+  VAULT_ADDR: https://bradfordwagner.com:8200
+  VAULT_FORMAT: json
+  kv2_prefix: secret/gh
+
+tasks:
+  status:
+    desc: |
+      prints the status of the vault
+    cmds:
+      - vault status | jq
+  clean_env_file:
+    silent: true
+    desc: |
+      removes the secrets file
+    cmds:
+      - cmd: rm {{ .env_secrets_file }}
+        ignore_error: true
+  kv2_env:
+    # silent: true
+    desc: |
+      reads a secret from vault
+    vars:
+      path: '{{ default "secret/azure/sp/infra" .path }}'
+    cmds:
+      - |
+        json_data=$(vault kv get {{ .path }}  | jq -r '.data.data')
+        echo ${json_data} | jq -r 'to_entries | map("export \(.key)=\(.value | @sh)") | .[]' > {{ .env_secrets_file }}
