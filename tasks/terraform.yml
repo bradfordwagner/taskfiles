@@ -30,11 +30,7 @@ tasks:
         sh: yq -r '.secrets.kv[].path' {{ .USER_WORKING_DIR }}/config.yaml
     env:
       tf_action: '{{ .tf_action }}'
-      # backend: '{{ .backend }}'
-      workspace_name: '{{ .workspace_name }}'
-      workspace_path: '{{ .workspace_path }}'
     cmds:
-      # - task: vault:status
       - task: vault:clean_env_file
       - for: {var: kv2_secrets}
         task: vault:kv2_env

@@ -13,6 +13,7 @@ vars:
   jq_version: 1.7
   yq_version: v4.43.1
   terraform_version: 1.5.7
+  vault_version: 1.16.1
   on_tags: |
     on:
       push:
@@ -359,16 +360,14 @@ tasks:
                   workspace: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).workspaces }}` }}
               steps:
                 {{- .default_steps | nindent 6 -}}
+                - name: vault={{ .vault_version }}
+                  uses: cpanato/vault-installer@main
+                  with:
+                    vault-release: {{ .vault_version }}
                 - uses: hashicorp/setup-terraform@v3
                   name: terraform={{ .terraform_version }}
                   with:
                     terraform_version: {{ .terraform_version }}
-                - name: debug
-                  run: |
-                    echo workspace={{ `\${{ matrix.workspace.name }}` }}
-                    echo path={{ `\${{ matrix.workspace.path }}` }}
-                    which terraform
-                    terraform version
                 - name: task={{ .ITEM }}
                   run: |
                     {{ $ci_tag := `\${{ github.ref_name }}` }}
