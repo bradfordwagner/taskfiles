@@ -9,8 +9,12 @@ tasks:
     cmds:
       - helm lint {{ .USER_WORKING_DIR }}
   template:
+    vars:
+      pipe_bat: '{{ default "false" .pipe_bat }}'
     cmds:
-      - helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }}
+      - |
+        [[ "true" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }} | bat -P -lyaml
+        [[ "false" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }}
   dependencies:
     desc: installs helm dependencies
     vars:
