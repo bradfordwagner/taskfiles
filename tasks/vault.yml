@@ -35,3 +35,24 @@ tasks:
       - |
         json_data=$(vault kv get {{ .path }}  | jq -r '.data.data')
         echo ${json_data} | jq -r 'to_entries | map("export \(.key)=\(.value | @sh)") | .[]' > {{ .env_secrets_file }}
+
+  generate_approle:
+    desc: |
+      generates approle
+    vars:
+      role: '{{ default "gh_terraform" .role }}'
+      ttl: '{{ default "10s" .ttl }}'
+    env:
+      role: '{{ .role }}'
+      ttl: '{{ .ttl }}'
+    cmds:
+      - |
+        cd {{ .USER_WORKING_DIR }}
+        set -x
+        role_id=$(vault read auth/approle/role/${role}/role-id -format=json | jq '.data.role_id' -r)
+        secret_id=$(vault write auth/approle/role/${role}/secret-id ttl=${ttl} | jq '.data.secret_id' -r)
+        cat <<EOF > {{ .env_secrets_file }}
+        export role_id=${role_id}
+        export secret_id=${secret_id}
+        EOF
+        vault write auth/approle/login role_id=${role_id} secret_id=${secret_id} -format=json | jq
