@@ -67,7 +67,7 @@ tasks:
           [[ -f {{ .USER_WORKING_DIR }}/backend.hcl ]] && terraform ${chdir} init -backend-config={{ .USER_WORKING_DIR }}/backend.hcl -input=false
           terraform ${chdir} workspace select -or-create=true ${workspace_name}
           terraform ${chdir} workspace list
-          terraform ${chdir} plan -lock=true -input=false ${tfvars} ${tf_plan_action}
+          terraform ${chdir} plan -input=false ${tfvars} ${tf_plan_action}
 
           # select action
           if [ 'plan' != "${tf_action}" ]; then
