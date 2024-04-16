@@ -17,6 +17,12 @@ tasks:
             path: ./environments/dev
           - name: tst
             path: ./environments/tst
+        secrets:
+          auth:
+            approle:
+              role: gh_terraform
+          kv:
+            - path: secret/azure/sp/infra
         EOF
   workspaces:
     vars:

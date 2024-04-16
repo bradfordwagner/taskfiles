@@ -14,6 +14,7 @@ vars:
   yq_version: v4.43.1
   terraform_version: 1.5.7
   vault_version: 1.16.1
+  vault_addr: https://bradfordwagner.com:8200
   on_tags: |
     on:
       push:
@@ -364,6 +365,15 @@ tasks:
                   uses: cpanato/vault-installer@main
                   with:
                     vault-release: {{ .vault_version }}
+                - name: vault=login@{{ .vault_addr }}
+                  id: import-secrets
+                  uses: hashicorp/vault-action@v3
+                  with:
+                    url: {{ .vault_addr }}
+                    method: approle
+                    roleId: {{ `\${{ secrets.ROLE_ID }}` }}
+                    secretId: {{ `\${{ secrets.SECRET_ID }}` }}
+                    exportToken: true
                 - uses: hashicorp/setup-terraform@v3
                   name: terraform={{ .terraform_version }}
                   with:
