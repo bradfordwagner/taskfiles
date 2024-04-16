@@ -8,9 +8,13 @@ version: '3'
 
 vars:
   task_version: 3.35.1
+  taskfiles_version: main
   buildx_version: v0.13.1
   jq_version: 1.7
   yq_version: v4.43.1
+  terraform_version: 1.5.7
+  vault_version: 1.16.1
+  vault_addr: https://bradfordwagner.com:8200
   on_tags: |
     on:
       push:
@@ -27,11 +31,12 @@ vars:
       uses: pnorton5432/setup-task@v1
       with:
         task-version: {{ .task_version }}
-    - name: checkout=taskfiles
+    - name: checkout=taskfiles@{{ .taskfiles_version }}
       uses: actions/checkout@v4
       with:
         path: taskfiles
         repository: bradfordwagner/taskfiles
+        ref: {{ .taskfiles_version }}
   docker_steps: |
     - name: qemu
       uses: docker/setup-qemu-action@v3
@@ -323,4 +328,63 @@ tasks:
                       build=\${build} \\
                       target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
                       is_tag={{ eq .ITEM "tags" }}
+          EOF
+
+  terraform_workspaces:
+    vars:
+      config:
+        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches, tags]
+        cmd: |
+          {{- $c := fromJson .config -}}
+          {{- $root := . -}}
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/terraform_workspaces_{{ .ITEM }}.yml
+          name: terraform-workspaces-{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          jobs:
+          {{- .config_yaml | nindent 2 -}}
+            {{ .ITEM }}:
+              permissions: write-all
+              name: {{ `\${{ matrix.workspace.name }}` }}
+              runs-on: ubuntu-latest
+              needs: config-yaml
+              strategy:
+                fail-fast: false
+                matrix:
+                  workspace: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).workspaces }}` }}
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - name: vault={{ .vault_version }}
+                  uses: cpanato/vault-installer@main
+                  with:
+                    vault-release: {{ .vault_version }}
+                - name: vault=login@{{ .vault_addr }}
+                  id: import-secrets
+                  uses: hashicorp/vault-action@v3
+                  with:
+                    url: {{ .vault_addr }}
+                    method: approle
+                    roleId: {{ `\${{ secrets.ROLE_ID }}` }}
+                    secretId: {{ `\${{ secrets.SECRET_ID }}` }}
+                    exportToken: true
+                - uses: hashicorp/setup-terraform@v3
+                  name: terraform={{ .terraform_version }}
+                  with:
+                    terraform_version: {{ .terraform_version }}
+                - name: task={{ .ITEM }}
+                  run: |
+                    {{- $ci_tag := `\${{ github.ref_name }}` }}
+                    workspace={{ `\$(echo '\${{ toJson(matrix.workspace) }}'  | jq -rc '.')` }}
+                    task -t ./taskfiles/tasks/terraform.yml \\
+                      workspaces \\
+                      workspace=\${workspace} \\
+                      target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
+                      tf_action={{ eq .ITEM "tags" | ternary "apply" "plan" }}
           EOF

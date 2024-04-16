@@ -1,0 +1,95 @@
+---
+version: '3'
+
+description: |
+  This is used to write secrets to the repo
+
+vars:
+  env_secrets_file: "{{ .USER_WORKING_DIR }}/.secrets.sh"
+
+env:
+  VAULT_ADDR: https://bradfordwagner.com:8200
+  VAULT_FORMAT: json
+  kv2_prefix: secret/gh
+
+tasks:
+  status:
+    desc: |
+      prints the status of the vault
+    cmds:
+      - vault status | jq
+  clean_env_file:
+    silent: true
+    desc: |
+      removes the secrets file
+    cmds:
+      - cmd: rm {{ .env_secrets_file }}
+        ignore_error: true
+  kv2_env:
+    desc: |
+      reads a secret from vault
+    vars:
+      path: '{{ default "secret/azure/sp/infra" .path }}'
+    cmds:
+      - |
+        json_data=$(vault kv get {{ .path }}  | jq -r '.data.data')
+        echo ${json_data} | jq -r 'to_entries | map("export \(.key)=\(.value | @sh)") | .[]' > {{ .env_secrets_file }}
+
+  generate_approle:
+    desc: |
+      generates approle
+    vars:
+      role: '{{ default "gh_terraform" .role }}'
+      ttl: '{{ default "10s" .ttl }}'
+    env:
+      role: '{{ .role }}'
+      ttl: '{{ .ttl }}'
+    cmds:
+      - |
+        cd {{ .USER_WORKING_DIR }}
+        set -x
+        echo using ttl=${ttl}
+        role_id=$(vault read auth/approle/role/${role}/role-id | jq '.data.role_id' -r)
+        secret_data=$(vault write -f auth/approle/role/${role}/secret-id ttl=${ttl})
+        echo ${secret_data} | jq
+        secret_id=$(echo ${secret_data} | jq '.data.secret_id' -r)
+        cat <<EOF > {{ .env_secrets_file }}
+        export role_id=${role_id}
+        export secret_id=${secret_id}
+        EOF
+        vault write auth/approle/login role_id=${role_id} secret_id=${secret_id} | jq
+  list_approle_accessors:
+    desc: |
+      lists approle accessors
+    vars:
+      role: '{{ default "gh_terraform" .role }}'
+    env:
+      role: '{{ .role }}'
+    cmds:
+      - |
+        set -x
+        vault list auth/approle/role/${role}/secret-id | jq
+  read_approle_accessor:
+    desc: |
+      reads approle accessor
+    vars:
+      role: '{{ default "gh_terraform" .role }}'
+      accessor: '{{ default "" .accessor }}'
+    env:
+      role: '{{ .role }}'
+      accessor: '{{ .accessor }}'
+    cmds:
+      - |
+        set -x
+        vault write auth/approle/role/${role}/secret-id-accessor/lookup secret_id_accessor=${accessor} | jq
+  delete_approle_accessors:
+    desc: |
+      deletes approle accessors
+    vars:
+      role: '{{ default "gh_terraform" .role }}'
+    env:
+      role: '{{ .role }}'
+    cmds:
+      - task: list_approle_accessors
+      - vault list auth/approle/role/${role}/secret-id  | jq -r '.[]' | xargs -I % vault write auth/approle/role/${role}/secret-id-accessor/destroy secret_id_accessor=%
+      - task: list_approle_accessors
