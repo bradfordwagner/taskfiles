@@ -25,6 +25,7 @@ tasks:
             - path: secret/azure/sp/infra
         EOF
   workspaces:
+    silent: true
     vars:
       # plan|apply|destroy
       tf_action: '{{ .tf_action | default "plan" }}'
