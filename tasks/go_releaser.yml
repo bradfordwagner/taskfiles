@@ -11,6 +11,14 @@ env:
   wd: '{{ .USER_WORKING_DIR }}'
 
 tasks:
+  build_current_os_arch_only:
+    desc: |
+      This task is used to build the current os and arch only
+    cmds:
+      - |
+        cd ${wd}
+        set -ex
+        goreleaser build --snapshot --single-target --clean
   default:
     cmds:
       - |
