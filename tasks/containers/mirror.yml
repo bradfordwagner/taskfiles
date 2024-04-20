@@ -43,7 +43,6 @@ tasks:
 
         # resolve golang vars
         {{- $push_flag := eq "true" .is_tag | ternary "--push" " " }}
-        {{- $resolved_repo := default .repo .repo_rename }}
 
         # resolve bash vars
         repo=$(echo $build | jq -r '.repo')
@@ -52,6 +51,11 @@ tasks:
         push_flag={{ $push_flag }}
         target_repo=$(yq -r '.target_repo' config.yaml)
         target_tag={{ .target_tag }}
+
+        # resolve target_repo_name
+        target_repo_name=${repo}
+        repo_override=$(echo $build | jq -r '.repo_override')
+        [ -n "${repo_override}" ] && target_repo_name=${repo_override}
 
 
         # debug
@@ -67,4 +71,4 @@ tasks:
         set -x
         echo "
         FROM ${repo}:${repo_tag}
-        " | docker buildx build --platform ${platforms} -t ${target_repo}:${target_tag}-${repo}_${repo_tag} ${push_flag} -
+        " | docker buildx build --platform ${platforms} -t ${target_repo}:${target_tag}-${target_repo_name}_${repo_tag} ${push_flag} -
