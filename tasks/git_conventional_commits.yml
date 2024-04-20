@@ -50,7 +50,7 @@ tasks:
         read message
 
         # output results
-        output="${commit_type}${scope}: ${message}"
+        output="${commit_type}${scope}${breaking_change}: ${message}"
         echo ${output}
         # copy to clipboard
         echo ${output} | pbcopy
