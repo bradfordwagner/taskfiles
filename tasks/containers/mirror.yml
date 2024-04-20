@@ -55,7 +55,7 @@ tasks:
         # resolve target_repo_name
         target_repo_name=${repo}
         repo_override=$(echo $build | jq -r '.repo_override')
-        [ -n "${repo_override}" ] && target_repo_name=${repo_override}
+        [ null !=  "${repo_override}" ] && target_repo_name=${repo_override}
 
 
         # debug
