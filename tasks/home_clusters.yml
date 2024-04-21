@@ -8,7 +8,7 @@ vars:
   bind_addr: 0.0.0.0
   remote_host: bwagner-studio
   remote_dir: ~/.kube
-  clusters: 'admin,cicd'
+  clusters: admin
   install_dir: ~/.kube
 
 tasks:
