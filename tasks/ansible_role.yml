@@ -11,9 +11,13 @@ vars:
     [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
     [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No meta/requirements.yml Found"
     [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
-    set -e
-    [ -f {{ .test_file }} ] && ansible-playbook {{ .test_file }} || echo Skipping '{{ .test_file }}'
-    [ -f playbook.yml ] && ansible-playbook playbook.yml || echo Skipping 'playbook.yaml'
+    set -ex
+    if [ -f {{ .test_file }} ]; then
+      ansible-playbook {{ .test_file }}
+    fi
+    if [ -f playbook.yml ]; then
+      ansible-playbook playbook.yml
+    fi
 tasks:
   default:
     cmds:
