@@ -58,6 +58,7 @@ tasks:
       target_tag: '{{ default "latest" .target_tag }}'
       use_cache: '{{ default "false" .use_cache }}'
       progress: '{{ default "plain" .progress }}'
+      is_tag: '{{ default "false" .is_tag }}'
     cmds:
       - |
         cd {{ .USER_WORKING_DIR }}
