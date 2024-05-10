@@ -51,6 +51,17 @@ tasks:
           - os: ubuntu_noble
             platforms: [linux/amd64, linux/arm64]
         EOF
+      - |
+        file={{ .USER_WORKING_DIR }}/generate_dockerfile.sh
+        cat <<EOF > ${file}
+        # this is used to generate a docker file in the build task
+        # input 0 is expected to be the nth upstream item
+        v=\$1
+        cat <<FOF
+        RUN echo hello world=\$v
+        FOF
+        EOF
+        chmod +x ${file}
   build:
     desc: |
       This task is used to build the docker images
@@ -59,6 +70,7 @@ tasks:
       target_tag: '{{ default "latest" .target_tag }}'
       use_cache: '{{ default "false" .use_cache }}'
       progress: '{{ default "plain" .progress }}'
+      is_tag: '{{ default "false" .is_tag }}'
     cmds:
       - |
         cd {{ .USER_WORKING_DIR }}
@@ -91,8 +103,9 @@ tasks:
         echo push_flag=${push_flag}
 
         # create the dockerfile
+        [ -f "generate_dockerfile.sh" ] && generate_dockerfile=$(. generate_dockerfile.sh ${build})
         cat <<EOF > Dockerfile
-        FROM ${repo}
+        FROM ${repo} as builder
         RUN rm -rf /src || echo "No Source Directory Found"
         RUN mkdir -p /src
         WORKDIR /src
@@ -100,6 +113,7 @@ tasks:
         RUN [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found" \\
           && set -e \\
           && ansible-playbook playbook.yml
+        ${generate_dockerfile}
         EOF
 
         set -x
