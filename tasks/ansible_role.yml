@@ -7,16 +7,20 @@ env:
 vars:
   debug: '{{ default "false" .debug }}'
   test_file: '{{ default "test.yml" .test_file }}'
+  hosts_file: '{{ default "hosts.yaml" .hosts_file }}'
   build_cmds: |
     [[ "true" == "{{ .debug }}" ]] && ansible -m setup localhost || echo Skipping Host Debug
     [ -f meta/requirements.yml ] && ansible-galaxy install -r meta/requirements.yml || echo "Skipping Role Dependency Download: No meta/requirements.yml Found"
     [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
     set -ex
+    if [ -f {{ .hosts_file }} ]; then
+      hosts_files='-i {{ .hosts_file }}'
+    fi
     if [ -f {{ .test_file }} ]; then
-      ansible-playbook {{ .test_file }}
+      ansible-playbook {{ .test_file }} ${hosts_files}
     fi
     if [ -f playbook.yml ]; then
-      ansible-playbook playbook.yml
+      ansible-playbook playbook.yml ${hosts_files}
     fi
 tasks:
   default:
