@@ -388,3 +388,42 @@ tasks:
                       target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
                       tf_action={{ eq .ITEM "tags" | ternary "apply" "plan" }}
           EOF
+
+  github_runners:
+    vars:
+      config:
+        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches]
+        cmd: |
+          {{- $c := fromJson .config -}}
+          {{- $root := . -}}
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/github_runners_{{ .ITEM }}.yml
+          name: github-runners-{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          jobs:
+          {{- .config_yaml | nindent 2 -}}
+            {{ .ITEM }}:
+              name: {{ `\${{ matrix.vms.name }}` }}
+              permissions: write-all
+              runs-on: {{ `\${{ matrix.vms.name }}` }}
+              needs: config-yaml
+              strategy:
+                fail-fast: false
+                matrix:
+                  vms: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).vms }}` }}
+              steps:
+                - name: checkout=self
+                  uses: actions/checkout@v4
+                - run: |
+                    . /ansible_env/bin/activate
+                    set -x
+                    ansible-galaxy install -r requirements.yml
+                    ansible-playbook pb-vms.yml -e github_token={{ `\${{ github.token }}` }}
+          EOF
