@@ -14,7 +14,7 @@ vars:
     [ -f requirements.yml ] && ansible-galaxy install -r requirements.yml || echo "Skipping Role Dependency Download: No requirements.yml Found"
     set -ex
     if [ -f {{ .hosts_file }} ]; then
-      hosts_files='-i {{ .hosts_file }}'
+      hosts_files="-i {{ .hosts_file }}"
     fi
     if [ -f {{ .test_file }} ]; then
       ansible-playbook {{ .test_file }} ${hosts_files}
@@ -104,6 +104,6 @@ tasks:
         intermediate_tag=ansible-role-$((RANDOM))
         docker build --platform={{ .platform }} -t ${intermediate_tag} -f ${tmp_dockerfile} .
 
-        docker run -it --platform={{ .platform }} ${intermediate_tag} sh -c '
+        docker run -it --platform={{ .platform }} ${intermediate_tag} bash -c '
         {{ .build_cmds }}
         '
