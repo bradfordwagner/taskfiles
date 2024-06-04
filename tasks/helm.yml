@@ -24,6 +24,32 @@ tasks:
           [[ "true" == "{{ .cleanup }}" ]] && rm -rf {{ .USER_WORKING_DIR}}/charts {{ .USER_WORKING_DIR }}/Chart.lock
         ignore_error: true
       - cd {{ .USER_WORKING_DIR }} && helm dependency build
+  registry_login:
+    desc: logs into helm registry
+    vars:
+      helm_registry: "{{ .helm_registry }}"
+      password: "{{ .password }}"
+    cmds:
+      - echo {{ .password }} | helm registry login {{ .helm_registry }} --username $(whoami) --password-stdin
+  push_oci:
+    desc: pushes oci image to registry
+    vars:
+      tarball: "{{ .tarball }}"
+      oci_name: "{{ .oci_name }}"
+      oci_path: "{{ .oci_path }}"
+      oci_version: "{{ .oci_version }}"
+      helm_registry: "{{ .helm_registry }}"
+    cmds:
+      - cmd: |
+          set -x
+          chart_url=oci://{{ .helm_registry }}/{{ .oci_path }}
+
+          # push to registry
+          if helm show chart "$chart_url/{{ .oci_name }}" --version "{{ .oci_version }}" --repository-config '' > /dev/null; then
+            echo "$chart_url:{{ .oci_version }} already exists, skipping"
+          else
+            helm push "{{ .tarball }}" "$chart_url"
+          fi
   default:
     cmds:
       - task: dependencies

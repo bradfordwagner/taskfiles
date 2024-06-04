@@ -6,7 +6,7 @@ description: |
 
 tasks:
   push_tarball:
-    description: |
+    desc: |
       This task is used to push the tarball to the docker registry
     vars:
       tarball: "{{ default .tarball }}"
