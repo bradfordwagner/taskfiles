@@ -1,0 +1,24 @@
+---
+version: '3'
+
+description: |
+  This is used to accomodate docker commands
+
+tasks:
+  push_tarball:
+    description: |
+      This task is used to push the tarball to the docker registry
+    vars:
+      tarball: "{{ default .tarball }}"
+      image_name: "{{ .image_name }}"
+      image_tag: "{{ .image_tag }}"
+      docker_registry: "{{ .docker_registry }}"
+    cmds:
+      - |
+        set -x
+        orig_image_name=$(docker image load -i {{ .tarball }}  --quiet \
+          | sed 's|^[^:]*: *||'
+        )
+        new_image_name={{ .docker_registry }}/{{ .image_name }}:{{ .image_tag }}
+        docker tag $orig_image_name {{ .docker_registry }}/{{ .image_name }}:{{ .image_tag }}
+        docker push $new_image_name
