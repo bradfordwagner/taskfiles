@@ -425,5 +425,5 @@ tasks:
                     . /ansible_env/bin/activate
                     set -x
                     ansible-galaxy install -f -r requirements.yml
-                    ansible-playbook pb-vms.yml -e github_token={{ `\${{ github.token }}` }}
+                    ansible-playbook pb-vms.yml -e github_token={{ `\${{ secrets.TOKEN }}` }}
           EOF
