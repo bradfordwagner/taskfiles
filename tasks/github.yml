@@ -50,6 +50,17 @@ vars:
         registry: ghcr.io
         username: {{ `\${{ github.actor }}` }}
         password: {{ `\${{ github.token }}` }}
+  yq_steps: |
+    # https://github.com/chrisdickinson/setup-yq/blob/latest/action.yml
+    - uses: chrisdickinson/setup-yq@v1.0.1
+      name: yq={{ .yq_version }}
+      with:
+        yq-version: {{ .yq_version -}}
+  jq_steps: |
+    - name: jq={{ .jq_version }}
+      uses: dcarbone/install-jq-action@v2
+      with:
+        version: {{ .jq_version -}}
 
   # job to load config yaml in a prestep
   config_yaml: |
@@ -60,15 +71,8 @@ vars:
         config: {{ `\${{ steps.config.outputs.config }}`}}
       steps:
         - uses: actions/checkout@v4
-        # https://github.com/chrisdickinson/setup-yq/blob/latest/action.yml
-        - uses: chrisdickinson/setup-yq@v1.0.1
-          name: yq={{ .yq_version }}
-          with:
-            yq-version: {{ .yq_version }}
-        - name: jq={{ .jq_version }}
-          uses: dcarbone/install-jq-action@v2
-          with:
-            version: {{ .jq_version }}
+        {{- .yq_steps | nindent 4 }}
+        {{- .jq_steps | nindent 4 }}
         - name: export=config
           id: config
           run: echo "config=\$(yq -oj '.' config.yaml | jq -cr)" >> \$GITHUB_OUTPUT
@@ -222,7 +226,7 @@ tasks:
           jobs:
             {{- .config_yaml | nindent 2 -}}
             {{ .ITEM }}:
-              runs-on: ubuntu-latest
+              runs-on: arm64
               permissions: write-all
               needs: config-yaml
               name: {{ `\${{ matrix.build.repo }}_\${{ matrix.build.tag }}`}}
