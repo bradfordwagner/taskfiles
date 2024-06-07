@@ -67,10 +67,11 @@ tasks:
       This task is used to build the docker images
     vars:
       build: '{{ default "" .build }}'
+      is_tag: '{{ default "false" .is_tag }}'
+      platform: '{{ default "linux/arm64" .platform }}'
+      progress: '{{ default "plain" .progress }}'
       target_tag: '{{ default "latest" .target_tag }}'
       use_cache: '{{ default "false" .use_cache }}'
-      progress: '{{ default "plain" .progress }}'
-      is_tag: '{{ default "false" .is_tag }}'
     cmds:
       - |
         cd {{ .USER_WORKING_DIR }}
@@ -82,25 +83,25 @@ tasks:
         fi
 
         # setup go vars
-        {{- $push_flag := eq "true" .is_tag | ternary "--push" " " }}
         {{- $use_cache := eq "true" .use_cache | ternary "" "--no-cache" }}
 
         # resolve shell vars
         os=$(echo ${build} | jq -r '.os')
-        platforms=$(echo ${build} | jq -r '.platforms | join(",")')
         upstream_tag=$(yq -r '.upstream.tag' config.yaml)
-        push_flag={{ $push_flag }}
         use_cache={{ $use_cache }}
         repo=$(yq -r '.upstream.repo' config.yaml):$(yq -r '.upstream.tag' config.yaml)-${os}
+        platform_tag={{ .platform | replace "/" "_" }}
+        target_repo=$(yq -r '.target_repo' config.yaml)
+        fq_name=${target_repo}:{{ .target_tag }}-${os}-${platform_tag}
 
         # debug vars
         echo -n build=
         echo ${build} | jq '.'
         echo repo=${repo}
-        echo platforms=${platforms}
+        echo platform={{ .platform }}
         echo upstream_tag=${upstream_tag}
         echo use_cache=${use_cache}
-        echo push_flag=${push_flag}
+        echo fq_name=${fq_name}
 
         # create the dockerfile
         [ -f "generate_dockerfile.sh" ] && generate_dockerfile=$(. generate_dockerfile.sh ${build})
@@ -119,11 +120,14 @@ tasks:
         set -x
 
         # run build
-        target_repo=$(yq -r '.target_repo' config.yaml)
-        docker buildx build \
-          --progress={{ .progress }} \
+        docker build \
           ${use_cache} \
-          --platform ${platforms} \
-          -t ${target_repo}:{{ .target_tag }}-${os} \
-          {{ $push_flag }} \
+          --platform {{ .platform }} \
+          --progress={{ .progress }} \
+          -t ${fq_name} \
           .
+
+        # push to registry
+        if [[ "true" == "{{ .is_tag }}" ]]; then
+          docker push ${fq_name}
+        fi
