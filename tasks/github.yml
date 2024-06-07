@@ -236,6 +236,8 @@ tasks:
                   build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
               steps:
                 {{- .default_steps | nindent 6 -}}
+                {{- .yq_steps | nindent 6 -}}
+                {{- .jq_steps | nindent 6 -}}
                 {{- .docker_steps | nindent 6 -}}
                 - name: task={{ .ITEM }}
                   run: |
@@ -294,7 +296,7 @@ tasks:
   container_ansible_playbook:
     vars:
       config:
-        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq -o json
     cmds:
       - task: mkdir
         ignore_error: true
@@ -310,29 +312,64 @@ tasks:
           {{ .on_branches -}}
           {{- end -}}
           jobs:
-          {{- .config_yaml | nindent 2 -}}
-            {{ .ITEM }}:
-              permissions: write-all
-              name: {{ `\${{ matrix.build.os }}` }}
-              runs-on: ubuntu-latest
-              needs: config-yaml
-              strategy:
-                fail-fast: false
-                matrix:
-                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
+            ## run build ###################################################
+            {{- range $build := $c.builds }}
+            {{- range $platform := $build.platforms }}
+            # begin - build-{{ $build.os }}-{{ $platform }}
+            {{- $build_id := printf "build-%s-%s" $build.os $platform | sha256sum | print "a" }}
+            {{ $build_id }}:
+              name: {{ $build.os }},{{ $platform }}
+              runs-on: {{ ternary "arm64" "ubuntu-latest" (eq $platform "linux/arm64") }}
               steps:
-                {{- .default_steps | nindent 6 -}}
-                {{- .docker_steps | nindent 6 -}}
-                - name: task={{ .ITEM }}
-                  run: |
-                    {{ $ci_tag := `\${{ github.ref_name }}` }}
-                    build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
-                    task -t ./taskfiles/tasks/containers/ansible.yml \\
-                      build \\
-                      build=\${build} \\
-                      target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
-                      is_tag={{ eq .ITEM "tags" }}
+                {{- $root.default_steps | nindent 6 -}}
+                - name: test
+                  run: echo "test"
+            # end - build-{{ $build.os }}-{{ $platform }}
+            {{- end }}
+            {{- end }}
+            {{- range $build := $c.builds }}
+            {{- $manifest_id := printf "manifest-%s" $build.os | sha256sum | print "a" }}
+            ## manifest tool ###############################################
+            # begin - manifest-{{ $build.os }}
+            {{ $manifest_id }}:
+              name: {{ $build.os }}
+              runs-on: ubuntu-latest
+              needs:
+              {{- range $platform := $build.platforms }}
+              {{- $stripped_platform := splitList "/" $platform | last }}
+                # requires first character to be a letter
+                # use sha256 of build os and platform
+                {{- $build_id := printf "build-%s-%s" $build.os $platform | sha256sum | print "a" }}
+                - {{ $build_id }}
+              {{- end }}
+              steps:
+                - name: test
+                  run: echo "test"
+            # end - manifest-{{ $build.os }}
+            {{- end }}
           EOF
+        # {{- .config_yaml | nindent 2 -}}
+        # {{ .ITEM }}:
+        #   permissions: write-all
+        #   name: {{ `\${{ matrix.build.os }}` }}
+        #   runs-on: ubuntu-latest
+        #   needs: config-yaml
+        #   strategy:
+        #     fail-fast: false
+        #     matrix:
+        #       build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
+        #   steps:
+        #     {{- .default_steps | nindent 6 -}}
+        #     {{- .docker_steps | nindent 6 -}}
+        #     - name: task={{ .ITEM }}
+        #       run: |
+        #         {{ $ci_tag := `\${{ github.ref_name }}` }}
+        #         build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
+        #         task -t ./taskfiles/tasks/containers/ansible.yml \\
+        #           build \\
+        #           build=\${build} \\
+        #           target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
+        #           is_tag={{ eq .ITEM "tags" }}
 
   terraform_workspaces:
     vars:
