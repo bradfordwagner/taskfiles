@@ -1,0 +1,26 @@
+---
+version: '3'
+
+env:
+  wd: '{{ .USER_WORKING_DIR }}'
+
+tasks:
+  default:
+    desc: |
+      Takes an image and pushes it to ttl.sh with uuid and ttl, copies the resultant image to clipboard.
+    vars:
+      ttl: '{{ default "1h" .TTL }}'
+      uuid: '{{ default .uuid }}'
+      upstream_name: '{{ .upstream_name }}'
+    cmds:
+      - |
+        cd ${wd}
+        uuid={{ .uuid }}
+        if [ -z "${uuid}" ]; then
+          uuid=$(uuidgen)
+        fi
+        uuid=$(echo ${uuid} | tr '[:upper:]' '[:lower:]')
+        fq_name=ttl.sh/${uuid}:{{ .ttl }}
+        echo ${fq_name} | pbcopy
+        docker tag {{ .upstream_name }} ${fq_name}
+        docker push ${fq_name}
