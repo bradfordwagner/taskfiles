@@ -68,7 +68,6 @@ tasks:
     vars:
       build: '{{ default "" .build }}'
       is_tag: '{{ default "false" .is_tag }}'
-      platform: '{{ default "linux/arm64" .platform }}'
       progress: '{{ default "plain" .progress }}'
       target_tag: '{{ default "latest" .target_tag }}'
       use_cache: '{{ default "false" .use_cache }}'
@@ -87,12 +86,13 @@ tasks:
 
         # resolve shell vars
         os=$(echo ${build} | jq -r '.os')
+        arch=$(echo ${build} | jq -r '.arch')
+        arch_tag=$(echo ${build} | jq -r '.arch' | tr '/' '_')
         upstream_tag=$(yq -r '.upstream.tag' config.yaml)
         use_cache={{ $use_cache }}
         repo=$(yq -r '.upstream.repo' config.yaml):$(yq -r '.upstream.tag' config.yaml)-${os}
-        platform_tag={{ .platform | replace "/" "_" }}
         target_repo=$(yq -r '.target_repo' config.yaml)
-        fq_name=${target_repo}:{{ .target_tag }}-${os}-${platform_tag}
+        fq_name=${target_repo}:{{ .target_tag }}-${os}-${arch_tag}
 
         # debug vars
         echo -n build=
@@ -122,7 +122,7 @@ tasks:
         # run build
         docker build \
           ${use_cache} \
-          --platform {{ .platform }} \
+          --platform ${arch} \
           --progress={{ .progress }} \
           -t ${fq_name} \
           .
