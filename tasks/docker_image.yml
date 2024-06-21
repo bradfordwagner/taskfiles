@@ -5,6 +5,16 @@ description: |
   This is used to accomodate docker commands
 
 tasks:
+  k3d_image_import:
+    desc: |
+      This task is used to import the image into the k3d cluster
+    vars:
+      image: "{{ .image }}"
+      cluster: '{{ default "dev-tkgi-hal" .cluster }}'
+    cmds:
+      - |
+        set -x
+        k3d image import {{ .image }} --cluster {{ .cluster }}
   push_tarball:
     desc: |
       This task is used to push the tarball to the docker registry
