@@ -44,7 +44,7 @@ vars:
   dagger_version: 0.11.8
   default_steps_v2: |
     - uses: actions/checkout@v4
-    - name: dagger=install
+    - name: dagger={{ .dagger_version }}
       run: |
         curl -L https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION={{ .dagger_version}} sh
   docker_steps: |
@@ -224,7 +224,7 @@ tasks:
           EOF
   container_mirror:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@feature/init
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
     cmds:
       - task: mkdir
         ignore_error: true
