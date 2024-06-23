@@ -17,14 +17,59 @@ tasks:
         # created by init task for use with github actons
         upstream:
           repo: ghcr.io/bradfordwagner/ansible
-          tag: 5.2.0
+          tag: 5.8.0
         builds:
           - os: alpine_3.18
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: alpine_3.18
+            arch: linux/arm64
+            runs_on: arm64
           - os: alpine_3.19
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: alpine_3.19
+            arch: linux/arm64
+            runs_on: arm64
           - os: archlinux_latest
-          - os: debian_bookworm
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: debian_bookworm-slim
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: debian_bookworm-slim
+            arch: linux/arm64
+            runs_on: arm64
+          - os: rockylinux_8
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: rockylinux_8
+            arch: linux/arm64
+            runs_on: arm64
+          - os: rockylinux_9
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: rockylinux_9
+            arch: linux/arm64
+            runs_on: arm64
+          - os: ubuntu_jammy
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: ubuntu_jammy
+            arch: linux/arm64
+            runs_on: arm64
           - os: ubuntu_mantic
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: ubuntu_mantic
+            arch: linux/arm64
+            runs_on: arm64
           - os: ubuntu_noble
+            arch: linux/amd64
+            runs_on: ubuntu-latest
+          - os: ubuntu_noble
+            arch: linux/arm64
+            runs_on: arm64
         EOF
   init_playbook:
     desc: |
