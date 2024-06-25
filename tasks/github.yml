@@ -61,6 +61,7 @@ vars:
         registry: ghcr.io
         username: {{ `\${{ github.actor }}` }}
         password: {{ `\${{ github.token }}` }}
+        logout: false
   yq_steps: |
     # https://github.com/chrisdickinson/setup-yq/blob/latest/action.yml
     - uses: chrisdickinson/setup-yq@v1.0.1
