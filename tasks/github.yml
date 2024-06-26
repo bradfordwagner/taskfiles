@@ -232,7 +232,7 @@ tasks:
           EOF
   container_mirror:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@v0.1.0
     cmds:
       - task: mkdir
         ignore_error: true
@@ -304,7 +304,7 @@ tasks:
 
   container_custom:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@feature/custom
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@v0.1.0
     cmds:
       - task: mkdir
         ignore_error: true
