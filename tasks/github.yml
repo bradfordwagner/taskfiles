@@ -1,3 +1,4 @@
+#file: noinspection YAMLSchemaValidation
 ---
 # todo: setup buildkit
 # initially use mirror task
@@ -103,11 +104,10 @@ tasks:
     cmds:
       - mkdir -p {{ .USER_WORKING_DIR }}/.github/workflows
   ansible_role:
+    vars:
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@feature/ansible
     cmds:
       - task: mkdir
-        ignore_error: true
-        # delete old configuraton for ansible role - remoe after rev'd in all repos
-      - cmd: rm {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
         ignore_error: true
       - for: [branches, tags]
         cmd: |
@@ -118,30 +118,46 @@ tasks:
           {{- else }}
           {{ .on_branches -}}
           {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
           jobs:
-            {{- .config_yaml | nindent 2 -}}
-            ansible-role-{{ .ITEM }}:
-              name: {{ `\${{ matrix.build.os }}` }}-{{ `\${{ matrix.build.arch }}` }}
+            config-yaml:
+              name: config.yaml
+              runs-on: arm64
+              outputs:
+                product: {{ `\${{ steps.config.outputs.product }}`}}
+              steps:
+                {{- .default_steps_v2 | nindent 6 }}
+                - name: dagger=product
+                  id: config
+                  run: |
+                    echo product=\$(./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version=\${version}) >> \$GITHUB_OUTPUT
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
+              permissions: write-all
               needs: config-yaml
-              runs-on: {{ `\${{ matrix.build.runs_on }}` }}
+              name: {{ `\${{ matrix.product.index }}:\${{ matrix.product.os }} (\${{ matrix.product.arch }})`}}
               strategy:
                 fail-fast: false
                 matrix:
-                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
-              container:
-                image: {{ printf "%s:%s-%s"
-                  `\${{ fromJSON(needs.config-yaml.outputs.config).upstream.repo }}`
-                  `\${{ fromJSON(needs.config-yaml.outputs.config).upstream.tag }}`
-                  `\${{ matrix.build.os }}`
-                  }}
+                  product: {{ `\${{ fromJSON(needs.config-yaml.outputs.product) }}` }}
               steps:
-                {{- .default_steps | nindent 6 -}}
-                - name: task=branches
-                  run: ./bin/task -t ./taskfiles/tasks/ansible_role.yml
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: dagger=build
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version} \\
+                      --isDev=false \\
+                      --flavor=role
           {{- if eq .ITEM "tags" }}
             ansible-role-{{ .ITEM }}-publish:
               name: publish
-              needs: [config-yaml, ansible-role-{{ .ITEM }}]
+              needs: [config-yaml, builds]
               runs-on: ubuntu-latest
               steps:
                 - name: checkout=self
@@ -332,7 +348,7 @@ tasks:
                 - name: dagger=product
                   id: config
                   run: |
-                    echo product=\$(./bin/dagger -m {{ .dagger_module }} call product-json --src=.) >> \$GITHUB_OUTPUT
+                    echo product=\$(./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version=\${version}) >> \$GITHUB_OUTPUT
             builds:
               runs-on: {{ `\${{ matrix.product.runner }}` }}
               permissions: write-all
@@ -346,7 +362,6 @@ tasks:
                 {{- .default_steps_v2 | nindent 6 -}}
                 {{- .docker_login | nindent 6 -}}
                 - name: dagger=build
-                  id: config
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
                       --src=. \\
