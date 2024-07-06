@@ -123,7 +123,7 @@ tasks:
       - mkdir -p {{ .USER_WORKING_DIR }}/.github/workflows
   ansible_role:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@feature/ansible
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
     cmds:
       - task: mkdir
         ignore_error: true
@@ -257,8 +257,7 @@ tasks:
           EOF
   container_mirror:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@feature/ansible
-#      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@v0.1.0
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
     cmds:
       - task: mkdir
         ignore_error: true
@@ -321,7 +320,7 @@ tasks:
 
   container_custom:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@v0.1.0
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@main
     cmds:
       - task: mkdir
         ignore_error: true
@@ -383,7 +382,7 @@ tasks:
 
   container_ansible_playbook:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@feature/ansible
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
     cmds:
       - task: mkdir
         ignore_error: true
