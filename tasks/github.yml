@@ -1,3 +1,4 @@
+#file: noinspection YAMLSchemaValidation
 ---
 # todo: setup buildkit
 # initially use mirror task
@@ -7,6 +8,7 @@
 version: '3'
 
 vars:
+  # deprecated
   task_version: 3.35.1
   taskfiles_version: main
   buildx_version: v0.13.1
@@ -22,21 +24,33 @@ vars:
           - '*'
   on_branches: |
     on:
-      - push
-      - workflow_dispatch
+      push:
+        branches:
+          - '**'
+        tags-ignore:
+          - '**'
+      workflow_dispatch: {}
   default_steps: |
     - name: checkout=self
       uses: actions/checkout@v4
-    - name: task={{ .task_version }}
-      uses: pnorton5432/setup-task@v1
-      with:
-        task-version: {{ .task_version }}
+    - name: task=latest
+      run: |
+        sh -c "\$(curl --location https://taskfile.dev/install.sh)" -- -d
+        export PATH=\$(pwd)/bin:\$PATH
+    - name: task=version
+      run: ./bin/task --version
     - name: checkout=taskfiles@{{ .taskfiles_version }}
       uses: actions/checkout@v4
       with:
         path: taskfiles
         repository: bradfordwagner/taskfiles
         ref: {{ .taskfiles_version }}
+  dagger_version: 0.11.8
+  default_steps_v2: |
+    - uses: actions/checkout@v4
+    - name: dagger={{ .dagger_version }}
+      run: |
+        curl -L https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION={{ .dagger_version}} sh
   docker_steps: |
     - name: qemu
       uses: docker/setup-qemu-action@v3
@@ -44,29 +58,39 @@ vars:
       uses: docker/setup-buildx-action@v3
       with:
         version: {{ .buildx_version }}
+  docker_login: |
+    # work around other runner's logging out removing credentials
+    # https://github.com/docker/login-action/issues/173#issuecomment-1079688020
+    - name: Set DOCKER_CONFIG
+      run: |
+        id=docker_configs/\$(uuidgen)
+        mkdir -p \$HOME/\${id}/.docker
+        echo "DOCKER_CONFIG=\$HOME/\${id}/.docker" >> \$GITHUB_ENV
     - uses: docker/login-action@v3
       name: login=ghcr.io
       with:
         registry: ghcr.io
         username: {{ `\${{ github.actor }}` }}
         password: {{ `\${{ github.token }}` }}
+        logout: false
   yq_steps: |
     # https://github.com/chrisdickinson/setup-yq/blob/latest/action.yml
     - uses: chrisdickinson/setup-yq@v1.0.1
       name: yq={{ .yq_version }}
       with:
-        yq-version: {{ .yq_version -}}
+        yq-version: {{ .yq_version }}
+    - name: yq=version
+      run: yq --version
   jq_steps: |
     - name: jq={{ .jq_version }}
       uses: dcarbone/install-jq-action@v2
       with:
-        version: {{ .jq_version -}}
-
+        version: {{ .jq_version }}
   # job to load config yaml in a prestep
   config_yaml: |
     config-yaml:
       name: config.yaml
-      runs-on: ubuntu-latest
+      runs-on: arm64
       outputs:
         config: {{ `\${{ steps.config.outputs.config }}`}}
       steps:
@@ -76,6 +100,20 @@ vars:
         - name: export=config
           id: config
           run: echo "config=\$(yq -oj '.' config.yaml | jq -cr)" >> \$GITHUB_OUTPUT
+  # sets up matrix builds
+  product_yaml: |
+    product:
+      name: product
+      runs-on: arm64
+      outputs:
+        product: {{ `\${{ steps.config.outputs.product }}`}}
+      steps:
+        {{- .default_steps_v2 | trim | nindent 4 }}
+        - name: dagger=product
+          id: config
+          run: |
+            # write your own scoped version of the following since {{ .dagger_module }} is not available at this base level
+            # echo product=\$(./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version={{ `\${{ env.version }}` }}) >> \$GITHUB_OUTPUT
 
 tasks:
   mkdir:
@@ -83,11 +121,10 @@ tasks:
     cmds:
       - mkdir -p {{ .USER_WORKING_DIR }}/.github/workflows
   ansible_role:
+    vars:
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
     cmds:
       - task: mkdir
-        ignore_error: true
-        # delete old configuraton for ansible role - remoe after rev'd in all repos
-      - cmd: rm {{ .USER_WORKING_DIR }}/.github/workflows/ansible_role.yml
         ignore_error: true
       - for: [branches, tags]
         cmd: |
@@ -98,30 +135,37 @@ tasks:
           {{- else }}
           {{ .on_branches -}}
           {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
           jobs:
-            {{- .config_yaml | nindent 2 -}}
-            ansible-role-{{ .ITEM }}:
-              name: {{ `\${{ matrix.build.os }}`}}
-              needs: config-yaml
-              runs-on: ubuntu-latest
+            {{- .product_yaml | trim  | nindent 2 }}
+              {{- printf "echo product=\\$(./bin/dagger -m %s call product-json --src=. --version=\\${version}) >> \\$GITHUB_OUTPUT" .dagger_module | nindent 10 }}
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
+              permissions: write-all
+              needs: product
+              name: {{ `\${{ matrix.product.index }}:\${{ matrix.product.os }} (\${{ matrix.product.arch }})`}}
               strategy:
                 fail-fast: false
                 matrix:
-                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
-              container:
-                image: {{ printf "%s:%s-%s"
-                  `\${{ fromJSON(needs.config-yaml.outputs.config).upstream.repo }}`
-                  `\${{ fromJSON(needs.config-yaml.outputs.config).upstream.tag }}`
-                  `\${{ matrix.build.os }}`
-                  }}
+                  product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
               steps:
-                {{- .default_steps | nindent 6 -}}
-                - name: task=branches
-                  run: task -t ./taskfiles/tasks/ansible_role.yml
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                {{- .docker_login | trim | nindent 6 }}
+                - name: dagger=build
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version} \\
+                      --isDev=false \\
+                      --flavor=role
           {{- if eq .ITEM "tags" }}
             ansible-role-{{ .ITEM }}-publish:
               name: publish
-              needs: [config-yaml, ansible-role-{{ .ITEM }}]
+              needs: builds
               runs-on: ubuntu-latest
               steps:
                 - name: checkout=self
@@ -211,6 +255,8 @@ tasks:
                   run: task -t ./taskfiles/tasks/helm.yml
           EOF
   container_mirror:
+    vars:
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
     cmds:
       - task: mkdir
         ignore_error: true
@@ -223,42 +269,62 @@ tasks:
           {{- else }}
           {{ .on_branches -}}
           {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
           jobs:
-            {{- .config_yaml | nindent 2 -}}
-            {{ .ITEM }}:
-              runs-on: arm64
+            {{- .product_yaml | trim  | nindent 2 }}
+              {{- printf "echo product=\\$(./bin/dagger -m %s call product-json --src=. --version=\\${version}) >> \\$GITHUB_OUTPUT" .dagger_module | nindent 10 }}
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
               permissions: write-all
-              needs: config-yaml
-              name: {{ `\${{ matrix.build.repo }}_\${{ matrix.build.tag }}`}}
+              needs: product
+              name: {{ `\${{ matrix.product.index }}:\${{ matrix.product.repo }}-\${{ matrix.product.tag }} (\${{ matrix.product.arch }})`}}
               strategy:
                 fail-fast: false
                 matrix:
-                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
+                  product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
               steps:
-                {{- .default_steps | nindent 6 -}}
-                {{- .docker_steps | nindent 6 -}}
-                - name: task={{ .ITEM }}
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: dagger=build
+                  id: config
                   run: |
-                    {{- $ci_tag := `\${{ github.ref_name }}` }}
-                    build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
-                    task -t ./taskfiles/tasks/containers/mirror.yml \\
-                      build \\
-                      build=\${build} \\
-                      target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
-                      is_tag={{ eq .ITEM "tags" }}
+                    ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version} \\
+                      --isDev=false
+            manifest:
+              runs-on: arm64
+              permissions: write-all
+              needs: builds
+              name: manifest-tool
+              env:
+                actor: {{ `\${{ github.actor }}` }}
+                token: {{ `\${{ github.token }}` }}
+              steps:
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                {{- .docker_login | trim | nindent 6 }}
+                - name: dagger=manifest
+                  id: config
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call manifest \\
+                      --src=. \\
+                      --version=\${version} \\
+                      --actor=env:actor \\
+                      --token=env:token
           EOF
 
   container_custom:
     vars:
-      config:
-        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@main
     cmds:
       - task: mkdir
         ignore_error: true
       - for: [branches, tags]
         cmd: |
-          {{- $c := fromJson .config -}}
-          {{- $root := . -}}
           cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/docker_custom_{{ .ITEM }}.yml
           name: docker-custom-{{ .ITEM }}
           {{- if eq .ITEM "tags" }}
@@ -266,42 +332,61 @@ tasks:
           {{- else }}
           {{ .on_branches -}}
           {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
           jobs:
-          {{- .config_yaml | nindent 2 -}}
-            {{ .ITEM }}:
-              name: {{ `\${{ matrix.build.os }}` }}
+            {{- .product_yaml | trim  | nindent 2 }}
+              {{- printf "echo product=\\$(./bin/dagger -m %s call product-json --src=. --version=\\${version}) >> \\$GITHUB_OUTPUT" .dagger_module | nindent 10 }}
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
               permissions: write-all
-              runs-on: ubuntu-latest
-              needs: config-yaml
+              needs: product
+              name: {{ `\${{ matrix.product.index }}:\${{ matrix.product.os }} (\${{ matrix.product.arch }})`}}
               strategy:
                 fail-fast: false
                 matrix:
-                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
+                  product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
               steps:
-                {{- .default_steps | nindent 6 -}}
-                {{- .docker_steps | nindent 6 -}}
-                - name: task={{ .ITEM }}
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: dagger=build
                   run: |
-                    {{ $ci_tag := `\${{ github.ref_name }}` }}
-                    build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
-                    task -t ./taskfiles/tasks/containers/custom.yml \\
-                      build \\
-                      build=\${build} \\
-                      target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
-                      is_tag={{ eq .ITEM "tags" }}
+                    ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version} \\
+                      --isDev=false
+            manifest:
+              runs-on: arm64
+              permissions: write-all
+              needs: builds
+              name: manifest-tool
+              env:
+                actor: {{ `\${{ github.actor }}` }}
+                token: {{ `\${{ github.token }}` }}
+              steps:
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: dagger=manifest
+                  id: config
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call manifest \\
+                      --src=. \\
+                      --version=\${version} \\
+                      --actor=env:actor \\
+                      --token=env:token
           EOF
 
   container_ansible_playbook:
     vars:
-      config:
-        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
     cmds:
       - task: mkdir
         ignore_error: true
       - for: [branches, tags]
         cmd: |
-          {{- $c := fromJson .config -}}
-          {{- $root := . -}}
           cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/ansible_playbook_{{ .ITEM }}.yml
           name: ansible-playbook-{{ .ITEM }}
           {{- if eq .ITEM "tags" }}
@@ -309,29 +394,54 @@ tasks:
           {{- else }}
           {{ .on_branches -}}
           {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
           jobs:
-          {{- .config_yaml | nindent 2 -}}
-            {{ .ITEM }}:
+            {{- .product_yaml | trim  | nindent 2 }}
+              {{- printf "echo product=\\$(./bin/dagger -m %s call product-json --src=. --version=\\${version}) >> \\$GITHUB_OUTPUT" .dagger_module | nindent 10 }}
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
               permissions: write-all
-              name: {{ `\${{ matrix.build.os }}` }}
-              runs-on: ubuntu-latest
-              needs: config-yaml
+              needs: product
+              name: {{ `\${{ matrix.product.index }}:\${{ matrix.product.os }} (\${{ matrix.product.arch }})`}}
               strategy:
                 fail-fast: false
                 matrix:
-                  build: {{ `\${{ fromJSON(needs.config-yaml.outputs.config).builds }}` }}
+                  product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
               steps:
-                {{- .default_steps | nindent 6 -}}
-                {{- .docker_steps | nindent 6 -}}
-                - name: task={{ .ITEM }}
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                {{- .docker_login | trim | nindent 6 }}
+                - name: dagger=build
                   run: |
-                    {{ $ci_tag := `\${{ github.ref_name }}` }}
-                    build={{ `\$(echo '\${{ toJson(matrix.build) }}'  | jq -rc '.')` }}
-                    task -t ./taskfiles/tasks/containers/ansible.yml \\
-                      build \\
-                      build=\${build} \\
-                      target_tag={{ eq .ITEM "tags" | ternary $ci_tag "latest" }} \\
-                      is_tag={{ eq .ITEM "tags" }}
+                    ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version} \\
+                      --isDev=false \\
+                      --flavor=playbook
+            {{ if eq .ITEM "tags" }}
+            manifest:
+              runs-on: arm64
+              permissions: write-all
+              needs: builds
+              name: manifest-tool
+              env:
+                actor: {{ `\${{ github.actor }}` }}
+                token: {{ `\${{ github.token }}` }}
+              steps:
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                {{- .docker_login | trim | nindent 6 }}
+                - name: dagger=manifest
+                  id: config
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call manifest \\
+                      --src=. \\
+                      --version=\${version} \\
+                      --actor=env:actor \\
+                      --token=env:token
+            {{- end }}
           EOF
 
   terraform_workspaces:
