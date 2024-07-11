@@ -10,8 +10,7 @@ version: '3'
 vars:
   # deprecated
   task_version: 3.35.1
-  taskfiles_version: feature/arm
-  # taskfiles_version: main
+  taskfiles_version: main
   buildx_version: v0.13.1
   jq_version: 1.7
   yq_version: v4.43.1
