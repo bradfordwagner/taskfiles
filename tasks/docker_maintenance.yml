@@ -1,0 +1,34 @@
+---
+version: '3'
+
+description: |
+  This is used to accomodate docker maintenance tasks
+
+tasks:
+  system_prune:
+    desc: |
+      This task is used to clean up the docker system
+    cmds:
+      - docker system prune -a
+  stop:
+    desc: |
+      This task is used to stop all running containers
+    cmds:
+      - docker stop $(docker ps -a -q)
+  remove_containers:
+    desc: |
+      This task is used to remove all containers
+    cmds:
+      - task: stop
+      - docker rm $(docker ps -a -q)
+  remove_images:
+    desc: |
+      This task is used to remove all images
+    cmds:
+      - docker rmi $(docker images -q)
+  default:
+    desc: |
+        This task is used to run all the tasks
+    cmds:
+        - task: remove_containers
+        - task: remove_images
