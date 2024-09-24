@@ -41,7 +41,13 @@ tasks:
         vars:
           action: '{{ .action }}'
           file: '{{ .ITEM }}'
-  kubefwd:
+  kubefwd_all:
     desc: forwards kubernetes services to localhost
     cmds:
       - sudo -E kubefwd svc --all-namespaces -d cluster.local
+  kubefwd_ns:
+    desc: forwards kubernetes services to localhost
+    vars:
+      ns: '{{ default "akp-telemetry" .ns }}'
+    cmds:
+      - sudo -E kubefwd svc -n {{ .ns }} -d cluster.local
