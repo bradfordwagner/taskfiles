@@ -1,3 +1,4 @@
+# gh auth refresh --scopes 'admin:public_key','gist','read:org','repo','write:packages'
 ---
 version: '3'
 
@@ -38,5 +39,5 @@ tasks:
         act push -W ./.github/workflows/docker_mirror_branches.yml \
           -r \
           --insecure-secrets \
-          -s github.actor=${token} \
+          -s GITHUB_TOKEN={{ .gh_token }} \
           -P arm64=catthehacker/ubuntu:act-latest
