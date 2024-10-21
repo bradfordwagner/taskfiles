@@ -45,7 +45,8 @@ vars:
         path: taskfiles
         repository: bradfordwagner/taskfiles
         ref: {{ .taskfiles_version }}
-  dagger_version: 0.11.8
+  # dagger_version: 0.11.8
+  dagger_version: 0.13.5
   default_steps_v2: |
     - uses: actions/checkout@v4
     - name: dagger={{ .dagger_version }}
@@ -63,7 +64,7 @@ vars:
     # https://github.com/docker/login-action/issues/173#issuecomment-1079688020
     - name: Set DOCKER_CONFIG
       run: |
-        id=docker_configs/\$(uuidgen)
+        id=docker_configs/\${RANDOM}
         mkdir -p \$HOME/\${id}/.docker
         echo "DOCKER_CONFIG=\$HOME/\${id}/.docker" >> \$GITHUB_ENV
     - uses: docker/login-action@v3
@@ -71,7 +72,7 @@ vars:
       with:
         registry: ghcr.io
         username: {{ `\${{ github.actor }}` }}
-        password: {{ `\${{ github.token }}` }}
+        password: {{ `\${{ secrets.GITHUB_TOKEN }}` }}
         logout: false
   yq_steps: |
     # https://github.com/chrisdickinson/setup-yq/blob/latest/action.yml
@@ -104,7 +105,7 @@ vars:
   product_yaml: |
     product:
       name: product
-      runs-on: arm64
+      runs-on: ubuntu-latest
       outputs:
         product: {{ `\${{ steps.config.outputs.product }}`}}
       steps:
@@ -122,7 +123,8 @@ tasks:
       - mkdir -p {{ .USER_WORKING_DIR }}/.github/workflows
   ansible_role:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
+      # dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@feature/0.13
     cmds:
       - task: mkdir
         ignore_error: true
@@ -153,12 +155,14 @@ tasks:
                   product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
               steps:
                 {{- .default_steps_v2 | trim | nindent 6 }}
-                {{- .docker_login | trim | nindent 6 }}
+                {{- .docker_login | nindent 6 -}}
                 - name: dagger=build
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
+                      --invalidate-cache=true \\
                       --version=\${version} \\
                       --isDev=false \\
                       --flavor=role

@@ -30,5 +30,5 @@ tasks:
     desc: |
         This task is used to run all the tasks
     cmds:
-        - task: remove_containers
-        - task: remove_images
+      - task: remove_containers
+      - task: remove_images
