@@ -1,0 +1,46 @@
+---
+version: '3'
+
+env:
+  wd: '{{ .USER_WORKING_DIR }}'
+
+vars:
+  gh_token:
+    sh: gh auth token
+  gh_user:
+    sh: whoami
+
+tasks:
+  default:
+    cmds:
+      - |
+        cd ${wd}
+        {{ .build_cmds }}
+  ansible_role:
+    desc: |
+      Runs act for ansible role locally
+    vars:
+      token: '{{ default "hi" .token }}'
+    cmds:
+      - |
+        cd ${wd}
+
+        act push -W ./.github/workflows/ansible_role_branches.yml \
+          -r \
+          --insecure-secrets \
+          -s GITHUB_TOKEN={{ .gh_token }} \
+          -P arm64=catthehacker/ubuntu:act-latest
+  mirror:
+    desc: |
+      Runs act for mirror builds
+    vars:
+      token: '{{ .token }}'
+    cmds:
+      - |
+        cd ${wd}
+
+        act push -W ./.github/workflows/docker_mirror_branches.yml \
+          -r \
+          --insecure-secrets \
+          -s github.actor=${token},github.repository=${gh_user}/${wd} \
+          -P arm64=catthehacker/ubuntu:act-latest
