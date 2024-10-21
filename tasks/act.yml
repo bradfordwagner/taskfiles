@@ -31,8 +31,6 @@ tasks:
   mirror:
     desc: |
       Runs act for mirror builds
-    vars:
-      token: '{{ .token }}'
     cmds:
       - |
         cd ${wd}
@@ -40,5 +38,5 @@ tasks:
         act push -W ./.github/workflows/docker_mirror_branches.yml \
           -r \
           --insecure-secrets \
-          -s github.actor=${token},github.repository=${gh_user}/${wd} \
+          -s github.actor=${token} \
           -P arm64=catthehacker/ubuntu:act-latest
