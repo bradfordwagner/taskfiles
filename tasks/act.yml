@@ -19,8 +19,6 @@ tasks:
   ansible_role:
     desc: |
       Runs act for ansible role locally
-    vars:
-      token: '{{ default "hi" .token }}'
     cmds:
       - |
         cd ${wd}
