@@ -28,6 +28,13 @@ tasks:
       - task: in_dir
         vars:
           action: delete
+  in_dir_apply:
+    aliases: [ida]
+    desc: kubectl applies all files in present directory, non-recursive
+    cmds:
+      - task: in_dir
+        vars:
+          action: apply
   in_dir:
     aliases: [id, dir]
     desc: applies all files in present directory, non-recursive
