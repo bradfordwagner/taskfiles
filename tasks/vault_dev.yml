@@ -1,0 +1,27 @@
+---
+version: '3'
+
+description: |
+  This is used to write secrets to the repo
+
+vars:
+  vault_addr:
+    sh: cat ~/.vault-addr
+  vault_token:
+    sh: cat ~/.vault-token
+  vault_kubeconfig:
+    sh: cat ~/.vault-kubeconfig
+  env_secrets_file: "{{ .USER_WORKING_DIR }}/.secrets.sh"
+
+env:
+  KUBECONFIG: '{{ .vault_kubeconfig }}'
+  VAULT_ADDR: '{{ .vault_addr }}'
+  VAULT_FORMAT: json
+  VAULT_TOKEN: '{{ .vault_token }}'
+
+tasks:
+  status:
+    desc: |
+      prints the status of the vault
+    cmds:
+      - vault status | jq
