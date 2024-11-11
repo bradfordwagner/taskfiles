@@ -20,6 +20,39 @@ env:
   VAULT_TOKEN: '{{ .vault_token }}'
 
 tasks:
+  webpage:
+    desc: |
+      opens the vault
+    cmds:
+      - open "{{ .vault_addr }}"
+  init:
+    internal: true
+    desc: |
+      initializes the vault
+    cmds:
+      - vault operator init -key-shares=1 -key-threshold=1 -format=json > ~/.vault-init.json
+      - jq -r '.unseal_keys_b64[0]' ~/.vault-init.json > ~/.vault-unseal-key
+      - bat -P ~/.vault-unseal-key
+      - bat -P ~/.vault-init.json
+      - jq -r '.root_token' ~/.vault-init.json > ~/.vault-token
+      - cp ~/.vault-token ~/.vault-root-token
+      - cat ~/.vault-root-token | pbcopy
+  unseal:
+    internal: true
+    desc: |
+      unseals the vault
+    cmds:
+      - vault operator unseal "$(cat ~/.vault-unseal-key)" | jq
+  reset:
+    desc: |
+      resets the vault and initializes vault
+    cmds:
+      - kubectl delete pvc --all &
+      - kubectl delete pod --all --force=true
+      - sleep 2
+      - kubectl wait --for=condition=Ready pods --all --timeout=5m
+      - task: init
+      - task: unseal
   status:
     desc: |
       prints the status of the vault
