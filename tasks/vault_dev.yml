@@ -37,6 +37,11 @@ tasks:
       - jq -r '.root_token' ~/.vault-init.json > ~/.vault-token
       - cp ~/.vault-token ~/.vault-root-token
       - cat ~/.vault-root-token | pbcopy
+  logout:
+    desc: |
+      logs out of the vault
+    cmds:
+      - open "{{ .vault_addr }}/ui/vault/logout"
   unseal:
     internal: true
     desc: |
