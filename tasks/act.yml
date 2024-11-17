@@ -29,6 +29,30 @@ tasks:
           --insecure-secrets \
           -s GITHUB_TOKEN={{ .gh_token }} \
           -P arm64=catthehacker/ubuntu:act-latest
+  ansible_playbook:
+    desc: |
+      Runs act for ansible playbook locally
+    cmds:
+      - |
+        cd ${wd}
+
+        act push -W ./.github/workflows/ansible_playbook_branches.yml \
+          -r \
+          --insecure-secrets \
+          -s GITHUB_TOKEN={{ .gh_token }} \
+          -P arm64=catthehacker/ubuntu:act-latest
+  custom:
+    desc: |
+      Runs act for custom builds
+    cmds:
+      - |
+        cd ${wd}
+
+        act push -W ./.github/workflows/docker_custom_branches.yml \
+          -r \
+          --insecure-secrets \
+          -s GITHUB_TOKEN={{ .gh_token }} \
+          -P arm64=catthehacker/ubuntu:act-latest
   mirror:
     desc: |
       Runs act for mirror builds
