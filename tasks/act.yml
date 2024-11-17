@@ -10,13 +10,16 @@ vars:
     sh: gh auth token
   gh_user:
     sh: whoami
+  dagger_modules: /Users/bwagner/workspace/github/bradfordwagner/go.lib/bradfordwagner.go.lib.dagger.container.builds
 
 tasks:
-  default:
+  copy_dagger_modules:
+    desc: |
+      Copies dagger_modules to the workspace
     cmds:
       - |
         cd ${wd}
-        {{ .build_cmds }}
+        rsync -av --exclude='.git' {{ .dagger_modules }}/* dagger_modules/
   ansible_role:
     desc: |
       Runs act for ansible role locally
@@ -56,12 +59,27 @@ tasks:
   mirror:
     desc: |
       Runs act for mirror builds
+    vars:
+      dagger_modules: '{{ default .dagger_modules .default_dagger_modules }}'
     cmds:
+      - task: copy_dagger_modules
       - |
         cd ${wd}
-
         act push -W ./.github/workflows/docker_mirror_branches.yml \
+          --container-options="-v {{ .dagger_modules }}" \
           -r \
+          --insecure-secrets \
+          -s GITHUB_TOKEN={{ .gh_token }} \
+          -P arm64=catthehacker/ubuntu:act-latest
+  container:
+    desc: |
+      Runs act for mirror builds
+    cmds:
+      - task: copy_dagger_modules
+      - |
+        cd ${wd}
+        act push -W ./.github/workflows/container_branches.yml \
+          --rm \
           --insecure-secrets \
           -s GITHUB_TOKEN={{ .gh_token }} \
           -P arm64=catthehacker/ubuntu:act-latest

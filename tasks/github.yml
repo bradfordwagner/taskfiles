@@ -46,7 +46,7 @@ vars:
         repository: bradfordwagner/taskfiles
         ref: {{ .taskfiles_version }}
   # dagger_version: 0.11.8
-  dagger_version: 0.13.5
+  dagger_version: 0.14.0
   default_steps_v2: |
     - uses: actions/checkout@v4
     - name: dagger={{ .dagger_version }}
@@ -260,7 +260,8 @@ tasks:
           EOF
   container_mirror:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
+      # dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
+      dagger_module: ./dagger_modules
     cmds:
       - task: mkdir
         ignore_error: true
@@ -296,6 +297,7 @@ tasks:
                   id: config
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
                       --version=\${version} \\
@@ -323,7 +325,8 @@ tasks:
 
   container_custom:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@main
+      # dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@main
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@feature/0.13
     cmds:
       - task: mkdir
         ignore_error: true
@@ -358,6 +361,7 @@ tasks:
                 - name: dagger=build
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
                       --version=\${version} \\
@@ -385,7 +389,8 @@ tasks:
 
   container_ansible_playbook:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
+      # dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@feature/0.13
     cmds:
       - task: mkdir
         ignore_error: true
@@ -420,12 +425,12 @@ tasks:
                 - name: dagger=build
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
                       --version=\${version} \\
                       --isDev=false \\
                       --flavor=playbook
-            {{ if eq .ITEM "tags" }}
             manifest:
               runs-on: arm64
               permissions: write-all
@@ -445,7 +450,6 @@ tasks:
                       --version=\${version} \\
                       --actor=env:actor \\
                       --token=env:token
-            {{- end }}
           EOF
 
   terraform_workspaces:
@@ -544,4 +548,40 @@ tasks:
                     set -x
                     ansible-galaxy install -f -r requirements.yml
                     ansible-playbook pb-vms.yml -e runners_token={{ `\${{ secrets.TOKEN }}` }}
+          EOF
+
+  container:
+    vars:
+      # dagger_module: github.com/bradfordwagner/dagger-modules/container_mirror@main
+      dagger_module: ./dagger_modules
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches, tags]
+        cmd: |
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/container_{{ .ITEM }}.yml
+          name: container-{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
+          jobs:
+            product:
+              name: product
+              runs-on: ubuntu-latest
+              # outputs:
+              #   product: {{ `\${{ steps.config.outputs.product }}`}}
+              steps:
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                - name: dagger=product
+                  id: config
+                  run: |
+                    # write your own scoped version of the following since {{ .dagger_module }} is not available at this base level
+                    set -x
+                    ./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version={{ `\${{ env.version }}` }}
           EOF
