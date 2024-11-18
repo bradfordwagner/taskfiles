@@ -26,12 +26,14 @@ tasks:
     cmds:
       - open "{{ .vault_addr }}"
   init:
-    internal: true
+    internal: false
     desc: |
       initializes the vault
     cmds:
       - vault operator init -key-shares=1 -key-threshold=1 -format=json > ~/.vault-init.json
       - jq -r '.unseal_keys_b64[0]' ~/.vault-init.json > ~/.vault-unseal-key
+      - bat -P ~/.vault-addr
+      - bat -P ~/.vault-kubeconfig
       - bat -P ~/.vault-unseal-key
       - bat -P ~/.vault-init.json
       - jq -r '.root_token' ~/.vault-init.json > ~/.vault-token
