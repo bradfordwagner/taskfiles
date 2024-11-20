@@ -45,7 +45,7 @@ tasks:
     cmds:
       - open "{{ .vault_addr }}/ui/vault/logout"
   unseal:
-    internal: true
+    internal: false
     desc: |
       unseals the vault
     cmds:
@@ -64,4 +64,8 @@ tasks:
     desc: |
       prints the status of the vault
     cmds:
+      - bat -P ~/.vault-kubeconfig
+      - |
+        ns=$(kubectl config view --minify --output 'jsonpath={..namespace}')
+        echo -n Kubernetes Namespace: ${ns}
       - vault status | jq
