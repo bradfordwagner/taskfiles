@@ -64,8 +64,9 @@ tasks:
     desc: |
       prints the status of the vault
     cmds:
+      - bat -P ~/.vault-addr
       - bat -P ~/.vault-kubeconfig
       - |
         ns=$(kubectl config view --minify --output 'jsonpath={..namespace}')
-        echo -n Kubernetes Namespace: ${ns}
+        echo Kubernetes Namespace: ${ns}
       - vault status | jq
