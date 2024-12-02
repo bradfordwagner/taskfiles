@@ -69,4 +69,5 @@ tasks:
       - |
         ns=$(kubectl config view --minify --output 'jsonpath={..namespace}')
         echo Kubernetes Namespace: ${ns}
+      - kubectl get po
       - vault status | jq
