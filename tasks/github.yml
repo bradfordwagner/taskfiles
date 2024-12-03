@@ -301,7 +301,7 @@ tasks:
                       --version=\${version} \\
                       --isDev=false
             manifest:
-              runs-on: arm64
+              runs-on: ubuntu-latest
               permissions: write-all
               needs: builds
               name: manifest-tool
@@ -363,7 +363,7 @@ tasks:
                       --version=\${version} \\
                       --isDev=false
             manifest:
-              runs-on: arm64
+              runs-on: ubuntu-latest
               permissions: write-all
               needs: builds
               name: manifest-tool
