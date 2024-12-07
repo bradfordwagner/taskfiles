@@ -6,7 +6,7 @@ description: |
 
 vars:
   bind_addr: 0.0.0.0
-  remote_host: bwagner-studio
+  remote_host: mac
   remote_dir: ~/.kube
   clusters: admin
   install_dir: ~/.kube
