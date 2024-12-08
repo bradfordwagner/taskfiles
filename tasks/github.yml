@@ -574,8 +574,8 @@ tasks:
             product:
               name: product
               runs-on: ubuntu-latest
-              # outputs:
-              #   product: {{ `\${{ steps.config.outputs.product }}`}}
+              outputs:
+                product: {{ `\${{ steps.config.outputs.product }}`}}
               steps:
                 {{- .default_steps_v2 | trim | nindent 6 }}
                 - name: dagger=product
@@ -583,5 +583,44 @@ tasks:
                   run: |
                     # write your own scoped version of the following since {{ .dagger_module }} is not available at this base level
                     set -x
-                    ./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version={{ `\${{ env.version }}` }}
+                    echo product=\$(./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version={{ `\${{ env.version }}` }}) >> \$GITHUB_OUTPUT
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
+              permissions: write-all
+              needs: product
+              name: {{ `\${{ matrix.product.index }}:\${{ matrix.product.repo }}-\${{ matrix.product.tag }} (\${{ matrix.product.arch }})`}}
+              strategy:
+                fail-fast: false
+                matrix:
+                  product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
+              steps:
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: dagger=build
+                  id: config
+                  run: |
+                    echo ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version}
+            manifest:
+              runs-on: arm64
+              permissions: write-all
+              needs: builds
+              name: manifest-tool
+              env:
+                actor: {{ `\${{ github.actor }}` }}
+                token: {{ `\${{ github.token }}` }}
+              steps:
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                {{- .docker_login | trim | nindent 6 }}
+                - name: dagger=manifest
+                  id: config
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call manifest \\
+                      --src=. \\
+                      --version=\${version} \\
+                      --actor=env:actor \\
+                      --token=env:token
           EOF
