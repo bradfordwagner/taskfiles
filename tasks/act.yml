@@ -10,13 +10,21 @@ vars:
     sh: gh auth token
   gh_user:
     sh: whoami
+  dagger_modules: /Users/bwagner/workspace/github/bradfordwagner/go.lib/bradfordwagner.go.lib.dagger.container.builds
+  image: ghcr.io/catthehacker/ubuntu:act-latest
 
 tasks:
-  default:
+  auth:
+    cmds:
+      - gh auth login -s write:packages
+  copy_dagger_modules:
+    desc: |
+      Copies dagger_modules to the workspace
     cmds:
       - |
         cd ${wd}
-        {{ .build_cmds }}
+        rm -rf dagger_modules
+        rsync -av --exclude='.git' {{ .dagger_modules }}/* dagger_modules/
   ansible_role:
     desc: |
       Runs act for ansible role locally
@@ -28,7 +36,11 @@ tasks:
           -r \
           --insecure-secrets \
           -s GITHUB_TOKEN={{ .gh_token }} \
-          -P arm64=catthehacker/ubuntu:act-latest
+          -P arm64={{ .image }} \
+          -P ubuntu-latest={{ .image }} \
+          -P ubuntu-24.04-arm={{ .image }} \
+          -P ubuntu-24.04={{ .image }} \
+          --container-architecture linux/arm64
   ansible_playbook:
     desc: |
       Runs act for ansible playbook locally
@@ -40,7 +52,11 @@ tasks:
           -r \
           --insecure-secrets \
           -s GITHUB_TOKEN={{ .gh_token }} \
-          -P arm64=catthehacker/ubuntu:act-latest
+          -P arm64={{ .image }} \
+          -P ubuntu-latest={{ .image }} \
+          -P ubuntu-24.04-arm={{ .image }} \
+          -P ubuntu-24.04={{ .image }} \
+          --container-architecture linux/arm64
   custom:
     desc: |
       Runs act for custom builds
@@ -52,16 +68,44 @@ tasks:
           -r \
           --insecure-secrets \
           -s GITHUB_TOKEN={{ .gh_token }} \
-          -P arm64=catthehacker/ubuntu:act-latest
+          -P arm64={{ .image }} \
+          -P ubuntu-latest={{ .image }} \
+          -P ubuntu-24.04-arm={{ .image }} \
+          -P ubuntu-24.04={{ .image }} \
+          --container-architecture linux/arm64
   mirror:
     desc: |
       Runs act for mirror builds
+    vars:
+      dagger_modules: '{{ default .dagger_modules .default_dagger_modules }}'
     cmds:
+      - task: copy_dagger_modules
       - |
         cd ${wd}
-
         act push -W ./.github/workflows/docker_mirror_branches.yml \
+          --container-options="-v {{ .dagger_modules }}" \
           -r \
           --insecure-secrets \
           -s GITHUB_TOKEN={{ .gh_token }} \
-          -P arm64=catthehacker/ubuntu:act-latest
+          -P arm64={{ .image }} \
+          -P ubuntu-latest={{ .image }} \
+          -P ubuntu-24.04-arm={{ .image }} \
+          -P ubuntu-24.04={{ .image }} \
+          --container-architecture linux/arm64
+  container:
+    desc: |
+      Runs act for mirror builds
+    cmds:
+      - task: copy_dagger_modules
+      - |
+        cd ${wd}
+        image=ghcr.io/catthehacker/ubuntu:act-latest
+        act push -W ./.github/workflows/container_branches.yml \
+          --rm \
+          --insecure-secrets \
+          -s GITHUB_TOKEN={{ .gh_token }} \
+          -P arm64={{ .image }} \
+          -P ubuntu-latest={{ .image }} \
+          -P ubuntu-24.04-arm={{ .image }} \
+          -P ubuntu-24.04={{ .image }} \
+          --container-architecture linux/arm64

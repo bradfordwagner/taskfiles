@@ -46,7 +46,8 @@ vars:
         repository: bradfordwagner/taskfiles
         ref: {{ .taskfiles_version }}
   # dagger_version: 0.11.8
-  dagger_version: 0.13.5
+  # dagger_version: 0.14.0
+  dagger_version: 0.15.2
   default_steps_v2: |
     - uses: actions/checkout@v4
     - name: dagger={{ .dagger_version }}
@@ -296,6 +297,7 @@ tasks:
                   id: config
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
                       --version=\${version} \\
@@ -323,7 +325,8 @@ tasks:
 
   container_custom:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@main
+      # dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@main
+      dagger_module: github.com/bradfordwagner/dagger-modules/container_custom@feature/0.13
     cmds:
       - task: mkdir
         ignore_error: true
@@ -358,6 +361,7 @@ tasks:
                 - name: dagger=build
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
                       --version=\${version} \\
@@ -385,7 +389,8 @@ tasks:
 
   container_ansible_playbook:
     vars:
-      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
+      # dagger_module: github.com/bradfordwagner/dagger-modules/ansible@main
+      dagger_module: github.com/bradfordwagner/dagger-modules/ansible@feature/0.13
     cmds:
       - task: mkdir
         ignore_error: true
@@ -420,12 +425,12 @@ tasks:
                 - name: dagger=build
                   run: |
                     ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
                       --src=. \\
                       --index={{ `\${{ matrix.product.index }}` }} \\
                       --version=\${version} \\
                       --isDev=false \\
                       --flavor=playbook
-            {{ if eq .ITEM "tags" }}
             manifest:
               runs-on: arm64
               permissions: write-all
@@ -445,7 +450,6 @@ tasks:
                       --version=\${version} \\
                       --actor=env:actor \\
                       --token=env:token
-            {{- end }}
           EOF
 
   terraform_workspaces:
@@ -544,4 +548,102 @@ tasks:
                     set -x
                     ansible-galaxy install -f -r requirements.yml
                     ansible-playbook pb-vms.yml -e runners_token={{ `\${{ secrets.TOKEN }}` }}
+          EOF
+
+  container:
+    vars:
+      dagger_module: https://github.com/bradfordwagner/dagger-container-builds@0.2.0
+      # dagger_module: https://github.com/bradfordwagner/dagger-container-builds@feature/ansible
+      # dagger_module: ./dagger_modules
+      config:
+        sh: cat {{ .USER_WORKING_DIR }}/config.yaml | yq -ojson
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches, tags]
+        cmd: |
+          {{- $c := fromJson .config -}}
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/container_{{ .ITEM }}.yml
+          name: container-{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
+          jobs:
+            product:
+              name: product
+              runs-on: ubuntu-24.04
+              outputs:
+                product: {{ `\${{ steps.config.outputs.product }}`}}
+              steps:
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                - name: dagger=product
+                  id: config
+                  run: |
+                    # write your own scoped version of the following since {{ .dagger_module }} is not available at this base level
+                    set -x
+                    echo product=\$(./bin/dagger -m {{ .dagger_module }} call product-json --src=. --version={{ `\${{ env.version }}` }}) >> \$GITHUB_OUTPUT
+            builds:
+              runs-on: {{ `\${{ matrix.product.runner }}` }}
+              permissions: write-all
+              needs: product
+              name: {{ `\${{ matrix.product.display }}`}}
+              strategy:
+                fail-fast: false
+                matrix:
+                  product: {{ `\${{ fromJSON(needs.product.outputs.product) }}` }}
+              steps:
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: dagger=build
+                  id: config
+                  run: |
+                    ./bin/dagger -m {{ .dagger_module }} call build \\
+                      --progress=plain \\
+                      --src=. \\
+                      --index={{ `\${{ matrix.product.index }}` }} \\
+                      --version=\${version}
+          # publish stage
+          # flavor={{ $c.flavor }}
+          {{- if and (has $c.flavor (list "ansible_role")) (eq .ITEM "tags") }}
+            ansible-role-publish:
+              name: publish
+              needs: builds
+              runs-on: ubuntu-latest
+              steps:
+                - name: checkout=self
+                  uses: actions/checkout@v4
+                - name: galaxy_publish
+                  uses: robertdebock/galaxy-action@1.2.0
+                  with:
+                    galaxy_api_key: {{ `\${{ secrets.GALAXY_TOKEN }}`}}
+                    git_branch: {{ `\${{ github.ref_name }}`}}
+          {{- end }}
+          {{- if (has $c.flavor (list "mirror" "custom" "ansible_playbook")) }}
+            manifest:
+              runs-on: ubuntu-latest
+              permissions: write-all
+              needs: builds
+              name: manifest-tool
+              env:
+                actor: {{ `\${{ github.actor }}` }}
+                token: {{ `\${{ github.token }}` }}
+              steps:
+                {{- .default_steps_v2 | trim | nindent 6 }}
+                {{- .docker_login | trim | nindent 6 }}
+                - name: dagger=manifest
+                  id: config
+                  run: |
+                    set -x
+                    ./bin/dagger -m {{ .dagger_module }} call manifest \\
+                      --src=. \\
+                      --version=\${version} \\
+                      --actor=env:actor \\
+                      --token=env:token
+          {{- end }}
           EOF
