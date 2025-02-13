@@ -92,7 +92,7 @@ vars:
   config_yaml: |
     config-yaml:
       name: config.yaml
-      runs-on: arm64
+      runs-on: ubuntu-24.04
       outputs:
         config: {{ `\${{ steps.config.outputs.config }}`}}
       steps:
@@ -232,7 +232,7 @@ tasks:
                     version: {{ .goreleaser_version }}
                     install-only: true
                 - name: task={{ .ITEM }}
-                  run: ./bin/task -t ./taskfiles/tasks/go_releaser.yml is_tag={{ eq .ITEM "tags" }}
+                  run: git status && ./bin/task -t ./taskfiles/tasks/go_releaser.yml is_tag={{ eq .ITEM "tags" }}
                   env:
                     GITHUB_TOKEN: {{ `\${{ github.token }} `}}
           EOF
@@ -356,6 +356,45 @@ tasks:
                     set -x
                     ansible-galaxy install -f -r requirements.yml
                     ansible-playbook pb-vms.yml -e runners_token={{ `\${{ secrets.TOKEN }}` }}
+          EOF
+
+  container_cnb:
+    vars:
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - for: [branches, tags]
+        cmd: |
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/cnb_{{ .ITEM }}.yml
+          name: cnb-{{ .ITEM }}
+          {{- if eq .ITEM "tags" }}
+          {{ .on_tags -}}
+          {{- else }}
+          {{ .on_branches -}}
+          {{- end -}}
+          env:
+            {{- $ci_tag := `\${{ github.ref_name }}` }}
+            {{- $version := eq .ITEM "tags" | ternary $ci_tag "latest" }}
+            version: {{ $version }}
+          jobs:
+            {{ .config_yaml | nindent 2 }}
+            builds:
+              runs-on: ubuntu-24.04
+              permissions: write-all
+              name: build
+              needs: config-yaml
+              steps:
+                {{- .default_steps_v2 | nindent 6 -}}
+                {{- .docker_login | nindent 6 -}}
+                - name: Pack Build
+                  uses: dfreilich/pack-action@v2.1.1
+                  with:
+                    args: |
+                      build {{ `\${{ fromJSON(needs.config-yaml.outputs.config).cnb.repo }}` }}:{{ `\${{ env.version }}` }} \\
+                      --builder {{ `\${{ fromJSON(needs.config-yaml.outputs.config).cnb.builder }}` }}
+                      {{- if eq .ITEM "tags" }} \\
+                      --publish
+                      {{- end }}
           EOF
 
   container:
