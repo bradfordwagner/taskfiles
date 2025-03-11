@@ -200,6 +200,29 @@ tasks:
               - name: task=yamllint
                 run: task -t ./taskfiles/tasks/yaml_lint.yml
         EOF
+  go_test:
+    vars:
+      go_version: 1.21
+    cmds:
+      - task: mkdir
+        ignore_error: true
+      - cmd: |
+          cat <<EOF > {{ .USER_WORKING_DIR }}/.github/workflows/go_test.yml
+          name: go_test
+          {{ .on_branches -}}
+          jobs:
+            go-test:
+              permissions: write-all
+              runs-on: ubuntu-latest
+              steps:
+                {{- .default_steps | nindent 6 -}}
+                - name: go={{ .go_version }}
+                  uses: actions/setup-go@v5
+                  with:
+                    go-version: {{ .go_version }}
+                - name: go_test
+                  uses: robherley/go-test-action@v0          
+          EOF
   go_releaser:
     vars:
       go_version: 1.21
