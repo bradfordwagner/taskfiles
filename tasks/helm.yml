@@ -11,10 +11,17 @@ tasks:
   template:
     vars:
       pipe_bat: '{{ default "false" .pipe_bat }}'
+      debug: '{{ default "false" .debug }}'
+      focus: '{{ default "" .focus }}'
     cmds:
       - |
-        [[ "true" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }} | bat -P -lyaml
-        [[ "false" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }}
+        args={{- eq "true" .debug | ternary "--debug" "" }}
+        if [[ "" != "{{ .focus }}" ]]; then
+          args="${args} -s {{ .focus }}"
+        fi
+        set -x
+        [[ "true" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }} ${args} | bat -P -lyaml
+        [[ "false" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }} ${args}
   dependencies:
     desc: installs helm dependencies
     vars:
