@@ -221,7 +221,7 @@ tasks:
                   with:
                     go-version: {{ .go_version }}
                 - name: go_test
-                  uses: robherley/go-test-action@v0          
+                  uses: robherley/go-test-action@v0
           EOF
   go_releaser:
     vars:
