@@ -22,6 +22,22 @@ tasks:
         set -x
         [[ "true" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }} ${args} | bat -P -lyaml
         [[ "false" == "{{ .pipe_bat }}" ]] && helm template {{ default "release-name" .release_name }} {{ .USER_WORKING_DIR }} ${args}
+  action_multiple:
+    vars:
+      focus: '{{ default "a,b,c" .focus }}'
+      release_name: '{{ default "release-name" .release_name }}'
+      output_dir: '{{ default "/tmp/templates" .output_dir }}'
+      action: '{{ default "apply" .action }}'
+    cmds:
+      - mkdir -p {{ .output_dir }}
+      - for: {var: focus, split: ','}
+        cmd: |
+          item={{ .ITEM }}
+          cleaned_path="${item#./}"
+          output_file_name=$(basename ${cleaned_path} .yaml)
+          file_path={{ .output_dir }}/${output_file_name}.yaml
+          cd {{ .USER_WORKING_DIR }} && helm template {{ .release_name }} {{ .USER_WORKING_DIR }} -s ${cleaned_path} > ${file_path}
+          kubectl {{ .action }} -f ${file_path}
   dependencies:
     desc: installs helm dependencies
     vars:
