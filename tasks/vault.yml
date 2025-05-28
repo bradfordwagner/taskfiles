@@ -105,25 +105,18 @@ tasks:
         # 1. List auth mounts and select one
         mount=$(vault auth list -format=json | jq -r 'keys[]' | fzf --prompt="Select auth mount: ")
         mount=${mount%/} # Remove trailing slash if present
-
         echo "Selected mount: $mount"
 
         # 2. List roles for the selected mount and select one
         roles=$(vault list -format=json auth/${mount}/role | jq -r '.[]')
         role=$(echo "$roles" | fzf --prompt="Select role: ")
-
         echo "Selected role: $role"
 
         # 3. Get token policies for the selected role
         policies=$(vault read -format=json auth/${mount}/role/${role} | jq -r '.data.token_policies[]')
-
         echo "Policies for role ${role}: $policies"
 
         # 4. Read and view each policy in bat
-        res=''
         echo "${policies}" \
         | xargs -I {} sh -c 'echo "### policy={} ###"; vault policy read {} | jq -r ".policy"' \
         | bat -lhcl
-        echo res=${res}
-          
-      
