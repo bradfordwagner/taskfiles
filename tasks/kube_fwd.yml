@@ -1,0 +1,17 @@
+---
+version: '3'
+
+description: |
+  task helper for kubefwd
+
+tasks:
+  all:
+    desc: forwards kubernetes services to localhost
+    cmds:
+      - sudo -E kubefwd svc --all-namespaces -d cluster.local
+  ns:
+    desc: forwards kubernetes services to localhost
+    vars:
+      ns: '{{ default "akp-telemetry" .ns }}'
+    cmds:
+      - sudo -E kubefwd svc -n {{ .ns }} -d cluster.local
