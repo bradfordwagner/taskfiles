@@ -5,13 +5,18 @@ description: |
   task helper for kubefwd
 
 tasks:
+  ns:
+    desc: forwards kubernetes services to localhost
+    vars:
+      ns: '{{ default "" .ns }}'
+    cmds:
+      - |
+        ns="{{ .ns }}"
+        if [[ -z ${ns} ]]; then
+          ns=$(kubectl get ns -o json | qq -i json '.items | map(.metadata.name) | .[]' -r | fzf)
+        fi
+        sudo -E kubefwd svc -n ${ns} -d cluster.local
   all:
     desc: forwards kubernetes services to localhost
     cmds:
       - sudo -E kubefwd svc --all-namespaces -d cluster.local
-  ns:
-    desc: forwards kubernetes services to localhost
-    vars:
-      ns: '{{ default "akp-telemetry" .ns }}'
-    cmds:
-      - sudo -E kubefwd svc -n {{ .ns }} -d cluster.local
