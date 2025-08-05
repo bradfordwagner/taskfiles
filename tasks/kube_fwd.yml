@@ -13,9 +13,15 @@ tasks:
       - |
         ns="{{ .ns }}"
         if [[ -z ${ns} ]]; then
-          ns=$(kubectl get ns -o json | qq -i json '.items | map(.metadata.name) | .[]' -r | fzf)
+          ns=$(kubectl get ns -o json | qq -i json '.items | map(.metadata.name) | .[]' -r | fzf --multi)
         fi
-        sudo -E kubefwd svc -n ${ns} -d cluster.local
+        ns_args=""
+        for namespace in ${ns}; do
+          ns_args+=" -n ${namespace}"
+        done
+        cmd="sudo -E kubefwd svc${ns_args} -d cluster.local"
+        echo "$cmd" | tmux load-buffer -
+        eval "$cmd"
   all:
     desc: forwards kubernetes services to localhost
     cmds:
