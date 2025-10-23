@@ -9,7 +9,7 @@ tasks:
     desc: |
       Takes an image and pushes it to ttl.sh with uuid and ttl, copies the resultant image to clipboard.
     vars:
-      ttl: '{{ default "1h" .TTL }}'
+      ttl: '{{ default "1h" .ttl }}'
       uuid: '{{ default .uuid }}'
       upstream_name: '{{ .upstream_name }}'
     cmds:
