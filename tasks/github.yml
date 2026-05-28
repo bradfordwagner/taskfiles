@@ -50,7 +50,14 @@ vars:
   dagger_version: 0.15.2
   default_steps_v2: |
     - uses: actions/checkout@v4
+    - name: cache dagger={{ .dagger_version }}
+      id: cache-dagger
+      uses: actions/cache@v4
+      with:
+        path: ./bin/dagger
+        key: dagger-{{ .dagger_version }}-{{ `\${{ runner.os }}`}}-{{ `\${{ runner.arch }}`}}
     - name: dagger={{ .dagger_version }}
+      if: {{ `\${{ steps.cache-dagger.outputs.cache-hit != 'true' }}`}}
       run: |
         curl -L https://dl.dagger.io/dagger/install.sh | DAGGER_VERSION={{ .dagger_version}} sh
   docker_steps: |
