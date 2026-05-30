@@ -429,7 +429,7 @@ tasks:
 
   container:
     vars:
-      dagger_module: https://github.com/bradfordwagner/dagger-container-builds@0.2.0
+      dagger_module: https://github.com/bradfordwagner/dagger-container-builds@0.3.0
       # dagger_module: https://github.com/bradfordwagner/dagger-container-builds@feature/ansible
       # dagger_module: ./dagger_modules
       config:
