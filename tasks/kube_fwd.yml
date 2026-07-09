@@ -19,10 +19,10 @@ tasks:
         for namespace in ${ns}; do
           ns_args+=" -n ${namespace}"
         done
-        cmd="sudo -E kubefwd svc${ns_args} -d cluster.local"
+        cmd="sudo KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config} $(which kubefwd) svc${ns_args} -d cluster.local"
         echo "$cmd" | tmux load-buffer -
         eval "$cmd"
   all:
     desc: forwards kubernetes services to localhost
     cmds:
-      - sudo -E kubefwd svc --all-namespaces -d cluster.local
+      - sudo KUBECONFIG=${KUBECONFIG:-$HOME/.kube/config} $(which kubefwd) svc --all-namespaces -d cluster.local
