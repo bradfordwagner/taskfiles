@@ -7,11 +7,20 @@ description: |
 
 vars:
   vault_addr:
-    sh: cat ~/.vault-addr
+    sh: |
+      f=~/.vault-addr
+      [ -f "$f" ] || echo "https://vault-ui.vault.svc.cluster.local" > "$f"
+      cat "$f"
   vault_token:
-    sh: cat ~/.vault-token
+    sh: |
+      f=~/.vault-token
+      [ -f "$f" ] || touch "$f"
+      cat "$f"
   vault_kubeconfig:
-    sh: cat ~/.vault-kubeconfig
+    sh: |
+      f=~/.vault-kubeconfig
+      [ -f "$f" ] || echo "$HOME/.kube/config" > "$f"
+      cat "$f"
 
 env:
   KUBECONFIG: '{{ .vault_kubeconfig }}'
@@ -51,7 +60,14 @@ tasks:
       - bat -P ~/.vault-init.json
       - jq -r '.root_token' ~/.vault-init.json > ~/.vault-token
       - cp ~/.vault-token ~/.vault-root-token
-      - cat ~/.vault-root-token | pbcopy
+      - |
+        if command -v pbcopy >/dev/null; then
+          cat ~/.vault-root-token | pbcopy
+        elif command -v wl-copy >/dev/null; then
+          cat ~/.vault-root-token | wl-copy
+        elif command -v xclip >/dev/null; then
+          cat ~/.vault-root-token | xclip -selection clipboard
+        fi
       - |
         cat <<EOF > ~/.vault-env.sh
         export VAULT_ADDR=$(cat ~/.vault-addr)
