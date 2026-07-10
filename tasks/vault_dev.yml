@@ -2,7 +2,8 @@
 version: '3'
 
 description: |
-  This is used to write secrets to the repo
+  This is used to manage a local/dev Vault instance (init, unseal, reset, status),
+  as opposed to vault.yml which targets the remote production Vault.
 
 vars:
   vault_addr:
@@ -11,7 +12,6 @@ vars:
     sh: cat ~/.vault-token
   vault_kubeconfig:
     sh: cat ~/.vault-kubeconfig
-  env_secrets_file: "{{ .USER_WORKING_DIR }}/.secrets.sh"
 
 env:
   KUBECONFIG: '{{ .vault_kubeconfig }}'
@@ -20,6 +20,19 @@ env:
   VAULT_TOKEN: '{{ .vault_token }}'
 
 tasks:
+  env:
+    desc: |
+      writes ~/.vault-env.sh with VAULT_ADDR/VAULT_TOKEN (root token) exports so other
+      CLIs (vault, etc) can use them natively. source it once to use:
+        source ~/.vault-env.sh
+    silent: true
+    cmds:
+      - |
+        cat <<EOF > ~/.vault-env.sh
+        export VAULT_ADDR={{ .vault_addr }}
+        export VAULT_TOKEN={{ .vault_token }}
+        EOF
+        bat -P ~/.vault-env.sh
   webpage:
     desc: |
       opens the vault
@@ -39,6 +52,12 @@ tasks:
       - jq -r '.root_token' ~/.vault-init.json > ~/.vault-token
       - cp ~/.vault-token ~/.vault-root-token
       - cat ~/.vault-root-token | pbcopy
+      - |
+        cat <<EOF > ~/.vault-env.sh
+        export VAULT_ADDR=$(cat ~/.vault-addr)
+        export VAULT_TOKEN=$(cat ~/.vault-token)
+        EOF
+        bat -P ~/.vault-env.sh
   logout:
     desc: |
       logs out of the vault
