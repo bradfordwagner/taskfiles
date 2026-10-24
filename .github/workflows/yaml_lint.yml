@@ -6,10 +6,10 @@ jobs:
     steps:
       - name: checkout=self
         uses: actions/checkout@v4
-      - name: task=3.35.1
-        uses: pnorton5432/setup-task@v1
-        with:
-          task-version: 3.35.1
+      - name: task=latest
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          task --version
       - name: checkout=taskfiles
         uses: actions/checkout@v4
         with:
