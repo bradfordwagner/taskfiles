@@ -414,7 +414,7 @@ tasks:
               name: build
               needs: config-yaml
               steps:
-                {{- .default_steps_v2 | nindent 6 -}}
+                - uses: actions/checkout@v4
                 {{- .docker_login | nindent 6 -}}
                 - name: Pack Build
                   uses: dfreilich/pack-action@v2.1.1
