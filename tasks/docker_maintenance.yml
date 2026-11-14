@@ -4,31 +4,53 @@ version: '3'
 description: |
   This is used to accomodate docker maintenance tasks
 
+vars:
+  # k3d nodes and registry pull-through caches: wiping these loses clusters (and a cicd
+  # cluster's GitHub scale set registrations) or the cache. Matched anywhere in the name.
+  protected: 'k3d-|registry-cache'
+
 tasks:
+  image_prune:
+    desc: |
+      Remove every image no container uses, running or stopped. Never touches containers,
+      so k3d clusters and registry caches are safe.
+    cmds:
+      - docker system df
+      - docker image prune -a
   system_prune:
     desc: |
-      This task is used to clean up the docker system
+      docker system prune -a: also deletes stopped containers, including stopped k3d clusters and registry caches
+    prompt: >-
+      This also deletes STOPPED containers, including stopped k3d clusters and registry caches (run cicd's
+      `task delete` first, or its scale sets stay registered with GitHub). Continue?
     cmds:
-      - docker system prune -a
+      - docker system df
+      - docker system prune -a -f
   stop:
     desc: |
-      This task is used to stop all running containers
+      Stop every running container except k3d nodes and registry caches
     cmds:
-      - docker stop $(docker ps -a -q)
+      - |
+        ps=$(docker ps --format '{{"{{"}}.ID{{"}}"}} {{"{{"}}.Names{{"}}"}}') || exit
+        ids=$(echo "${ps}" | grep -vE '{{ .protected }}' | cut -d' ' -f1)
+        [ -z "${ids}" ] || docker stop ${ids}
   remove_containers:
     desc: |
-      This task is used to remove all containers
+      Stop and remove every container except k3d nodes and registry caches
+    prompt: Remove every container except k3d nodes and registry caches?
     cmds:
       - task: stop
-      - docker rm $(docker ps -a -q)
+      - |
+        ps=$(docker ps -a --format '{{"{{"}}.ID{{"}}"}} {{"{{"}}.Names{{"}}"}}') || exit
+        ids=$(echo "${ps}" | grep -vE '{{ .protected }}' | cut -d' ' -f1)
+        [ -z "${ids}" ] || docker rm ${ids}
   remove_images:
     desc: |
-      This task is used to remove all images
+      Remove every image not used by a container (same as image_prune, without the size summary)
     cmds:
-      - docker rmi $(docker images -q)
+      - docker image prune -a -f
   default:
     desc: |
-        This task is used to run all the tasks
+      Show disk use and prune unused images
     cmds:
-      - task: remove_containers
-      - task: remove_images
+      - task: image_prune
